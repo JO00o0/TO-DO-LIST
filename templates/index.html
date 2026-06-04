@@ -346,6 +346,22 @@
             transform: scale(1.1);
             box-shadow: 0 0 20px rgba(195, 177, 225, 0.5);
         }
+
+        @media (max-width: 768px) {
+            /* 1. تحويل الكونتينر الرئيسي من أفقي لرأسي */
+            .sidebar, .main-content {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 10px 0;
+            }
+
+            /* 2. جعل layout على الموبايل رأسي */
+            body {
+                flex-direction: column-reverse;
+                padding: 10px;
+                overflow-x: hidden; /* بيمنع السكرول الأفقي المستفز في الموبايل */
+            }
+        }
     </style>
 </head>
 <body>
