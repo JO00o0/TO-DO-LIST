@@ -361,7 +361,6 @@
                     <button onclick="changeLanguage('ar')" id="lang-ar" style="flex:1; background:transparent; border:none; color:#fff; font-family:'Cairo'; font-size:12px; font-weight:bold; padding:6px; cursor:pointer; border-radius:10px;">العربية</button>
                     <button onclick="changeLanguage('en')" id="lang-en" style="flex:1; background:transparent; border:none; color:#fff; font-family:'Cairo'; font-size:12px; font-weight:bold; padding:6px; cursor:pointer; border-radius:10px;">English</button>
                 </div>
-                <button onclick="toggleDarkMode()" id="darkModeBtn" style="flex:0.3; background:transparent; border: var(--glass-border); border-radius: 10px; color:#fff; font-size:16px; cursor:pointer; padding:6px;">🌙</button>
             </div>
         </div>
 
@@ -425,15 +424,15 @@
             <div class="grid-stats">
                 <div class="card-stat">
                     <span class="card-stat-val" id="playerLevel">Lvl 1</span>
-                    <span class="card-stat-lbl">المستوى</span>
+                    <span class="card-stat-lbl" data-i18n="level_label">المستوى</span>
                 </div>
                 <div class="card-stat">
                     <span class="card-stat-val" id="playerXP">0/100</span>
-                    <span class="card-stat-lbl">نقاط الخبرة</span>
+                    <span class="card-stat-lbl" data-i18n="xp_label">نقاط الخبرة</span>
                 </div>
                 <div class="card-stat">
                     <span class="card-stat-val" id="achievementCount">0</span>
-                    <span class="card-stat-lbl">الإنجازات</span>
+                    <span class="card-stat-lbl" data-i18n="achievements_label">الإنجازات</span>
                 </div>
             </div>
 
@@ -454,23 +453,23 @@
             </div>
 
             <div class="glass-card" style="margin-top: 15px; padding: 15px 20px;">
-                <h4 style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">🏆 الإنجازات</h4>
+                <h4 style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;" data-i18n="achievements_title">🏆 الإنجازات</h4>
                 <div id="achievementsContainer" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                    <div class="achievement-badge locked" title="أكمل أول مهمة">
+                    <div class="achievement-badge locked" title="أكمل أول مهمة" data-ach="first_task">
                         <span style="font-size: 20px;">🎯</span>
-                        <span style="font-size: 11px; color: var(--text-muted);">أول مهمة</span>
+                        <span style="font-size: 11px; color: var(--text-muted);" data-i18n="ach_first_task">أول مهمة</span>
                     </div>
-                    <div class="achievement-badge locked" title="حافظ على 7 أيام متتالية">
+                    <div class="achievement-badge locked" title="حافظ على 7 أيام متتالية" data-ach="7_day_streak">
                         <span style="font-size: 20px;">🔥</span>
-                        <span style="font-size: 11px; color: var(--text-muted);">7 أيام متتالية</span>
+                        <span style="font-size: 11px; color: var(--text-muted);" data-i18n="ach_7_day_streak">7 أيام متتالية</span>
                     </div>
-                    <div class="achievement-badge locked" title="أكمل 100 مهمة">
+                    <div class="achievement-badge locked" title="أكمل 100 مهمة" data-ach="100_tasks_done">
                         <span style="font-size: 20px;">💯</span>
-                        <span style="font-size: 11px; color: var(--text-muted);">100 مهمة</span>
+                        <span style="font-size: 11px; color: var(--text-muted);" data-i18n="ach_100_tasks">100 مهمة</span>
                     </div>
-                    <div class="achievement-badge locked" title="ركز 1000 دقيقة">
+                    <div class="achievement-badge locked" title="ركز 1000 دقيقة" data-ach="1000_focus_minutes">
                         <span style="font-size: 20px;">⏰</span>
-                        <span style="font-size: 11px; color: var(--text-muted);">1000 دقيقة</span>
+                        <span style="font-size: 11px; color: var(--text-muted);" data-i18n="ach_1000_minutes">1000 دقيقة</span>
                     </div>
                 </div>
             </div>
@@ -486,11 +485,7 @@
             <h2 data-i18n="menu_tasks">مفكرة المهام اليومية</h2>
             <div class="input-group">
                 <input type="text" id="taskInput" placeholder="ما هي خطتكِ التالية اليوم؟..." autocomplete="off">
-                <select id="taskTrackSelect"></select>
                 <button class="add-btn" onclick="addTask()"><i class="fa-solid fa-plus"></i></button>
-            </div>
-            <div style="margin-bottom: 20px;">
-                <button class="pill-btn" style="font-size: 11px; padding: 4px 15px;" onclick="addNewTrackPrompt()" data-i18n="add_track_btn">+ إضافة سجل جديد</button>
             </div>
             
             <ul id="taskList" class="timeline-list"></ul>
@@ -596,7 +591,15 @@
                 th_pink_fuchsia: "بينك و فوشيا 🌸",
                 th_blue_silver: "ازرق و سيلفر 💎",
                 th_grey_silver: "رمادي و سيلفر 🌪️",
-                th_black_gold: "اسود و جولد 👑"
+                th_black_gold: "اسود و جولد 👑",
+                level_label: "المستوى",
+                xp_label: "نقاط الخبرة",
+                achievements_label: "الإنجازات",
+                achievements_title: "🏆 الإنجازات",
+                ach_first_task: "أول مهمة",
+                ach_7_day_streak: "7 أيام متتالية",
+                ach_100_tasks: "100 مهمة",
+                ach_1000_minutes: "1000 دقيقة"
             },
             en: {
                 logo: "TaskFlow ",
@@ -644,7 +647,15 @@
                 th_pink_fuchsia: "Pink & Fuchsia 🌸",
                 th_blue_silver: "Blue & Silver 💎",
                 th_grey_silver: "Grey & Silver 🌪️",
-                th_black_gold: "Black & Gold 👑"
+                th_black_gold: "Black & Gold 👑",
+                level_label: "Level",
+                xp_label: "Experience Points",
+                achievements_label: "Achievements",
+                achievements_title: "🏆 Achievements",
+                ach_first_task: "First Task",
+                ach_7_day_streak: "7 Day Streak",
+                ach_100_tasks: "100 Tasks",
+                ach_1000_minutes: "1000 Minutes"
             }
         };
         const trackLexicon = {
@@ -742,12 +753,7 @@
         }
 
         function populateTracksDropdown() {
-            const select = document.getElementById('taskTrackSelect');
-            select.innerHTML = '';
-            globalTracks.forEach(t => { 
-                const displayName = (trackLexicon[currentLang] && trackLexicon[currentLang][t]) ? trackLexicon[currentLang][t] : t;
-                select.innerHTML += `<option value="${t}">${displayName}</option>`; 
-            });
+            // Dropdown removed - all tasks use default 'عام' track
         }
 
         function renderDynamicStreak(days) {
@@ -791,23 +797,6 @@
 
             updateChartColors(theme);
             renderTasksList();
-        }
-
-        function toggleDarkMode() {
-            const isDark = localStorage.getItem('app_dark_mode') === 'true';
-            const newDarkMode = !isDark;
-            localStorage.setItem('app_dark_mode', newDarkMode);
-            
-            const btn = document.getElementById('darkModeBtn');
-            if (newDarkMode) {
-                btn.textContent = '☀️';
-                document.body.style.filter = 'invert(1) hue-rotate(180deg)';
-                document.body.style.transition = 'filter 0.3s ease';
-            } else {
-                btn.textContent = '🌙';
-                document.body.style.filter = 'none';
-                document.body.style.transition = 'filter 0.3s ease';
-            }
         }
 
         function updateAchievements(achievements) {
@@ -941,12 +930,6 @@
             const currentTheme = localStorage.getItem('app_user_theme') || 'pistachio-green';
             applyTheme(currentTheme);
             
-            const isDark = localStorage.getItem('app_dark_mode') === 'true';
-            if (isDark) {
-                document.getElementById('darkModeBtn').textContent = '☀️';
-                document.body.style.filter = 'invert(1) hue-rotate(180deg)';
-            }
-            
             totalTodayFocus = data.focus_minutes || 0;
             totalTodayBreak = data.break_minutes || 0;
             
@@ -1000,7 +983,6 @@
 
         async function addTask() {
             const textInput = document.getElementById('taskInput');
-            const trackSelect = document.getElementById('taskTrackSelect');
 
             if (!textInput.value.trim()) return;
 
@@ -1008,7 +990,7 @@
                 const response = await fetch('/api/tasks', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: textInput.value.trim(), track: trackSelect.value })
+                    body: JSON.stringify({ text: textInput.value.trim(), track: 'عام' })
                 });
 
                 if (!response.ok) throw new Error('Failed to add task');
@@ -1100,30 +1082,6 @@
             } catch (err) {
                 console.error('Error editing task:', err);
                 alert(translations[currentLang]['error_edit_task'] || 'فشل تحديث المهمة');
-            }
-        }
-
-        async function addNewTrackPrompt() {
-            const name = prompt(translations[currentLang]['prompt_track']);
-            if(!name || !name.trim()) return;
-
-            try {
-                const response = await fetch('/api/tracks', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ track_name: name.trim() })
-                });
-
-                if (!response.ok) throw new Error('Failed to add track');
-                const result = await response.json();
-
-                if(result.success){
-                    globalTracks = result.tracks;
-                    populateTracksDropdown();
-                }
-            } catch(err){
-                console.error('Error adding track:', err);
-                alert(translations[currentLang]['error_add_track'] || 'فشل إضافة التصنيف');
             }
         }
 

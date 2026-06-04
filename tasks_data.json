@@ -1,14 +1,7 @@
 {
-    "tasks": [],
-    "tracks": [
-        "عام",
-        "مذاكرة",
-        "برمجة",
-        "جيم"
-    ],
-    "streak": 0,
-    "last_completion_date": "",
-    "weekly_stats": {
+"streak": 0,
+"last_completion_date": "",
+"weekly_stats": {
         "Sat": 0,
         "Sun": 0,
         "Mon": 0,
