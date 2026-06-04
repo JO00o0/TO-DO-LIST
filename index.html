@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> TaskFlow Pro ✨</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/nes.css@2.3.0/css/nes.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f121d, #1a1e36, #141625);
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-active: rgba(255, 255, 255, 0.08);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+            --pixel-mint: #a3e895;
+            --pixel-pink: #ff9ebb;
+            --pixel-lavender: #c3b1e1;
+            --text-main: #f1f2f6;
+            --text-muted: #8b92b6;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: background 0.5s ease;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: rgba(10, 12, 22, 0.4);
+            backdrop-filter: blur(20px);
+            border-inline-end: var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 15px;
+            box-sizing: border-box;
+            transition: border 0.3s ease;
+        }
+
+        .logo-area {
+            font-weight: 900;
+            font-size: 20px;
+            color: var(--pixel-pink);
+            text-shadow: 0 0 10px rgba(255, 158, 187, 0.3);
+            text-align: center;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .menu-btn {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            color: var(--text-muted);
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            text-align: start;
+        }
+
+        .menu-btn:hover, .menu-btn.active {
+            background: var(--glass-active);
+            color: var(--pixel-mint);
+            border-color: var(--pixel-mint);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+            transform: scale(1.02);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .page-panel {
+            display: none;
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        .page-panel.active {
+            display: block;
+            animation: smoothSlideUp 0.4s ease-out;
+        }
+
+        @keyframes smoothSlideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 { font-weight: 900; font-size: 26px; color: var(--text-main); margin-top: 0; margin-bottom: 25px; }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: background 0.3s, border 0.3s;
+        }
+
+        .profile-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.01);
+            border: var(--glass-border);
+            border-radius: 24px;
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: border 0.3s;
+        }
+
+        .avatar-wrapper {
+            position: relative;
+            width: 70px;
+            height: 70px;
+        }
+
+        .avatar-pixel {
+            width: 100%;
+            height: 100%;
+            background: var(--glass-active);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed var(--pixel-lavender);
+            transition: border 0.3s, background 0.3s;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .remove-avatar-btn {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            background: #ff5f56;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        .profile-info h3 { margin: 0 0 6px 0; font-weight: 900; font-size: 22px; color: var(--text-main); }
+        
+        .streak-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--pixel-pink);
+            font-size: 14px;
+            font-weight: 700;
+            background: rgba(0,0,0,0.15);
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: var(--glass-border);
+        }
+
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .card-stat {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            border-radius: 20px;
+            padding: 20px 15px;
+            text-align: center;
+            transition: 0.3s;
+        }
+        .card-stat:hover { transform: translateY(-3px); background: var(--glass-active); }
+        .card-stat-val { font-size: 22px; font-weight: 900; color: #fff; display: block; margin-top: 5px; }
+        .card-stat-lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+        .input-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            border: var(--glass-border);
+            border-radius: 20px;
+            padding: 6px;
+            margin-bottom: 20px;
+            gap: 10px;
+            transition: border 0.3s;
+        }
+        input, select { background: transparent; border: none; outline: none; color: #fff; font-family: 'Cairo'; font-weight: 600; padding: 10px; }
+        input { flex: 1; font-size: 14px; }
+        input::placeholder { color: var(--text-muted); }
+        select { background: var(--glass-active); border-radius: 14px; font-size: 12px; color: var(--pixel-mint); padding: 0 15px; }
+        select option { background: #1a1e36; color: #fff; }
+        
+        .add-btn { 
+            background: var(--pixel-mint); 
+            color: #101223; border: none; border-radius: 14px; 
+            width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;
+            font-weight: bold; transition: 0.2s;
+        }
+        .add-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+        .timeline-list { list-style: none; padding: 0; margin: 0; position: relative; padding-inline-start: 25px; }
+        .timeline-list::before {
+            content: ''; position: absolute; inset-inline-start: 8px; top: 10px; bottom: 10px; width: 2px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-item {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            padding: 15px 20px;
+            border-radius: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .timeline-item::after {
+            content: ''; position: absolute; inset-inline-start: -21px; top: 50%; transform: translateY(-50%);
+            width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted);
+            border: 3px solid #0f121d; transition: 0.3s;
+        }
+
+        .task-left { display: flex; align-items: center; gap: 12px; }
+        .task-text { cursor: pointer; font-weight: 600; font-size: 14px; }
+        
+        .task-badge { 
+            font-size: 11px; 
+            padding: 4px 12px; 
+            border-radius: 12px; 
+            font-weight: 700; 
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-item.completed { border-color: var(--pixel-mint); background: rgba(255, 255, 255, 0.01); }
+        .timeline-item.completed::after { background: var(--pixel-mint); box-shadow: 0 0 8px var(--pixel-mint); }
+        .timeline-item.completed .task-text { text-decoration: line-through; color: var(--text-muted); }
+
+        .delete-btn { background: transparent; border: none; color: var(--pixel-pink); cursor: pointer; font-size: 15px; opacity: 0.7; }
+        .delete-btn:hover { opacity: 1; transform: scale(1.1); }
+
+        .timer-container { text-align: center; padding: 40px 20px; }
+        .timer-display {
+            font-size: 80px; font-weight: 900; color: var(--pixel-mint); margin: 10px 0; font-family: monospace;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+        }
+        .timer-mode { font-weight: 700; color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+        
+        .pill-btn {
+            background: var(--glass-bg); border: var(--glass-border);
+            color: #fff; padding: 10px 30px; border-radius: 25px; cursor: pointer; font-weight: 700; margin: 0 6px;
+            font-family: 'Cairo'; transition: 0.3s; font-size: 14px;
+        }
+        .pill-btn:hover, .pill-btn.primary-pill {
+            background: var(--pixel-mint); color: #101223; font-weight: bold;
+        }
+
+        .chart-box { background: rgba(0, 0, 0, 0.2); border: var(--glass-border); border-radius: 24px; padding: 20px; }
+        
+        .support-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 40px 30px;
+        }
+        .support-icon-box {
+            font-size: 45px;
+            color: var(--pixel-pink);
+            margin-bottom: 20px;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); filter: drop-shadow(0 0 10px var(--pixel-pink)); }
+            100% { transform: scale(1); }
+        }
+        .support-card h3 { margin: 0 0 15px 0; font-weight: 900; font-size: 22px; color: var(--pixel-mint); }
+        .support-card p { margin: 0 0 30px 0; font-size: 14px; color: var(--text-muted); line-height: 1.7; max-width: 520px; }
+
+        /* Achievement Badge Styles */
+        .achievement-badge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 8px;
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-badge.unlocked {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--pixel-mint);
+            box-shadow: 0 0 15px rgba(195, 177, 225, 0.3);
+        }
+
+        .achievement-badge.locked {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .achievement-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .achievement-badge.unlocked:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(195, 177, 225, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo-area">
+            <i class="nes-icon heart is-small"></i> <span data-i18n="logo">تاسك فلو برو</span>
+        </div>
+        
+        <div style="margin-bottom: 20px; padding: 0 5px;">
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <div style="flex:1; display: flex; background: rgba(0,0,0,0.2); border: var(--glass-border); border-radius: 12px; padding: 2px;">
+                    <button onclick="changeLanguage('ar')" id="lang-ar" style="flex:1; background:transparent; border:none; color:#fff; font-family:'Cairo'; font-size:12px; font-weight:bold; padding:6px; cursor:pointer; border-radius:10px;">العربية</button>
+                    <button onclick="changeLanguage('en')" id="lang-en" style="flex:1; background:transparent; border:none; color:#fff; font-family:'Cairo'; font-size:12px; font-weight:bold; padding:6px; cursor:pointer; border-radius:10px;">English</button>
+                </div>
+                <button onclick="toggleDarkMode()" id="darkModeBtn" style="flex:0.3; background:transparent; border: var(--glass-border); border-radius: 10px; color:#fff; font-size:16px; cursor:pointer; padding:6px;">🌙</button>
+            </div>
+        </div>
+
+        <button class="menu-btn active" onclick="switchPage('profile-page', this)">
+            <i class="fa-regular fa-user"></i> <span data-i18n="menu_dashboard">لوحة التحكم والتحليلات</span>
+        </button>
+        <button class="menu-btn" onclick="switchPage('tasks-page', this)">
+            <i class="fa-solid fa-list-check"></i> <span data-i18n="menu_tasks">مفكرة المهام اليومية</span>
+        </button>
+        <button class="menu-btn" onclick="switchPage('pomodoro-page', this)">
+            <i class="fa-regular fa-clock"></i> <span data-i18n="menu_pomodoro">مؤقت البومودورو والتركيز</span>
+        </button>
+        <button class="menu-btn" onclick="switchPage('support-page', this)">
+            <i class="fa-regular fa-envelope"></i> <span data-i18n="menu_support">صندوق الاقتراحات والدعم</span>
+        </button>
+    </div>
+
+    <div class="main-content">
+        
+        <!-- لوحة التحكم والتحليلات -->
+        <div id="profile-page" class="page-panel active">
+            <div class="profile-container">
+                <div class="avatar-wrapper">
+                    <button class="remove-avatar-btn" id="removeAvatarBtn" onclick="removeAvatar(event)"><i class="fa-solid fa-xmark"></i></button>
+                    <div class="avatar-pixel" onclick="document.getElementById('avatarInput').click();">
+                        <img id="profileImage" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                        <div id="avatarPlaceholder"><i class="nes-jp-logo scale2x"></i></div>
+                    </div>
+                </div>
+                <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="previewAndSaveAvatar(this)">
+
+                <div class="profile-info">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h3 id="profileName">ملكة الإنجاز الذكي ✨</h3>
+                        <button onclick="editProfileName()" style="background: none; border: none; color: var(--pixel-mint); cursor: pointer; font-size: 13px;"><i class="fa-regular fa-pen-to-square"></i></button>
+                        <button id="resetNameBtn" onclick="resetProfileName()" style="background: none; border: none; color: #ff5f56; cursor: pointer; font-size: 13px; display: none;"><i class="fa-solid fa-rotate-left"></i></button>
+                    </div>
+                    <div class="streak-badge" id="streakBadgeContainer">
+                        <span id="streakEmoji">💤</span>
+                        <span id="streakDays">0 يوم</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-stats">
+                <div class="card-stat">
+                   
+                    <span class="card-stat-val" id="totalFocusStats">0 M</span>
+                    <span class="card-stat-lbl" data-i18n="focus_time">وقت التركيز</span>
+                </div>
+                <div class="card-stat">
+                    <span class="card-stat-val" id="totalBreakStats">0 M</span>
+                    <span class="card-stat-lbl" data-i18n="break_time">وقت الراحة</span>
+                </div>
+                <div class="card-stat">
+                    <span class="card-stat-val" id="totalDoneStats">0</span>
+                    <span class="card-stat-lbl" data-i18n="completed_tasks">المهام المكتملة</span>
+                </div>
+            </div>
+
+            <div class="grid-stats">
+                <div class="card-stat">
+                    <span class="card-stat-val" id="playerLevel">Lvl 1</span>
+                    <span class="card-stat-lbl">المستوى</span>
+                </div>
+                <div class="card-stat">
+                    <span class="card-stat-val" id="playerXP">0/100</span>
+                    <span class="card-stat-lbl">نقاط الخبرة</span>
+                </div>
+                <div class="card-stat">
+                    <span class="card-stat-val" id="achievementCount">0</span>
+                    <span class="card-stat-lbl">الإنجازات</span>
+                </div>
+            </div>
+
+            <div class="glass-card" style="margin-top: 15px; padding: 15px 20px;">
+                <label id="themeLabel" style="display: block; font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;" data-i18n="theme_title">🎨 اختاري ستايل الألوان المفضل ليكي:</label>
+                <div style="display: flex; background: rgba(0, 0, 0, 0.2); border: var(--glass-border); border-radius: 14px; padding: 4px;">
+                    <select id="themeSelector" onchange="applyTheme(this.value)" style="width: 100%; color: #fff; background: transparent; font-family: 'Cairo'; font-weight: bold; cursor: pointer;">
+                        <option value="pistachio-green" data-i18n="th_pistachio_green">بستيج و اخضر 🍃</option>
+                        <option value="pistachio-gold" data-i18n="th_pistachio_gold">بستيج و جولد ✨</option>
+                        <option value="neon-glow" data-i18n="th_neon_glow">فسفوري اخضر و فسفوري اصفر ⚡</option>
+                        <option value="mauve-silver" data-i18n="th_mauve_silver">موف و سيلفر 🔮</option>
+                        <option value="pink-fuchsia" data-i18n="th_pink_fuchsia">بينك و فوشيا 🌸</option>
+                        <option value="blue-silver" data-i18n="th_blue_silver">ازرق و سيلفر 💎</option>
+                        <option value="grey-silver" data-i18n="th_grey_silver">رمادي و سيلفر 🌪️</option>
+                        <option value="black-gold" data-i18n="th_black_gold">اسود و جولد 👑</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="glass-card" style="margin-top: 15px; padding: 15px 20px;">
+                <h4 style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">🏆 الإنجازات</h4>
+                <div id="achievementsContainer" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <div class="achievement-badge locked" title="أكمل أول مهمة">
+                        <span style="font-size: 20px;">🎯</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">أول مهمة</span>
+                    </div>
+                    <div class="achievement-badge locked" title="حافظ على 7 أيام متتالية">
+                        <span style="font-size: 20px;">🔥</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">7 أيام متتالية</span>
+                    </div>
+                    <div class="achievement-badge locked" title="أكمل 100 مهمة">
+                        <span style="font-size: 20px;">💯</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">100 مهمة</span>
+                    </div>
+                    <div class="achievement-badge locked" title="ركز 1000 دقيقة">
+                        <span style="font-size: 20px;">⏰</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">1000 دقيقة</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size: 15px; margin-bottom: 12px; color: var(--text-main); font-weight: 700;" data-i18n="weekly_chart_title">جراف خطي لمعدل الإنتاجية الأسبوعي</h3>
+            <div class="chart-box">
+                <canvas id="weeklyChart" style="max-height: 160px;"></canvas>
+            </div>
+        </div>
+
+        <!-- مفكرة المهام اليومية -->
+        <div id="tasks-page" class="page-panel">
+            <h2 data-i18n="menu_tasks">مفكرة المهام اليومية</h2>
+            <div class="input-group">
+                <input type="text" id="taskInput" placeholder="ما هي خطتكِ التالية اليوم؟..." autocomplete="off">
+                <select id="taskTrackSelect"></select>
+                <button class="add-btn" onclick="addTask()"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <button class="pill-btn" style="font-size: 11px; padding: 4px 15px;" onclick="addNewTrackPrompt()" data-i18n="add_track_btn">+ إضافة سجل جديد</button>
+            </div>
+            
+            <ul id="taskList" class="timeline-list"></ul>
+
+            <div class="chart-box" style="max-width: 320px; margin: 25px auto 0 auto;">
+                <h4 style="text-align: center; margin: 0 0 15px 0; font-size: 13px; color: #fff;" data-i18n="pie_chart_title">نسبة اكتمال المهام اليوم</h4>
+                <canvas id="tasksPieChart" style="max-height: 150px;"></canvas>
+            </div>
+        </div>
+
+        <!-- مؤقت البومودورو والتركيز -->
+        <div id="pomodoro-page" class="page-panel">
+            <h2 data-i18n="menu_pomodoro">مؤقت البومودورو والتركيز</h2>
+            <div class="glass-card timer-container">
+                <div class="timer-display" id="timer">25:00</div>
+                <div class="timer-mode" id="timerMode">دقائق التركيز والإبداع حالياً</div>
+                
+                <div class="input-group" style="max-width: 280px; margin: 0 auto 25px auto; border-radius: 14px;">
+                    <input type="number" id="customWorkMinutes" value="25" style="text-align: center;" placeholder="تركيز">
+                    <input type="number" id="customBreakMinutes" value="5" style="text-align: center;" placeholder="راحة">
+                    <button class="add-btn" style="width: auto; padding: 0 12px; font-size: 12px; border-radius: 10px;" id="customTimeBtn" onclick="setCustomTimes()" data-i18n="edit_btn">تعديل</button>
+                </div>
+
+                <button class="pill-btn primary-pill" id="startBtn" onclick="toggleTimer()" data-i18n="start_timer">ابدأ المؤقت</button>
+                <button class="pill-btn" onclick="resetTimer()" data-i18n="reset_timer">إعادة ضبط</button>
+            </div>
+
+            <!-- جراف المقارنة -->
+            <div class="chart-box">
+                <h4 style="margin: 0 0 15px 0; font-size: 13px; color: #fff;" data-i18n="compare_chart_title">مقارنة فترات التركيز مقابل الاستراحة</h4>
+                <canvas id="pomodoroBarChart" style="max-height: 140px;"></canvas>
+            </div>
+        </div>
+
+        <!-- صندوق الاقتراحات والدعم -->
+        <div id="support-page" class="page-panel">
+            <h2 data-i18n="menu_support">صندوق الاقتراحات والدعم</h2>
+            <div class="glass-card support-card">
+                <div class="support-icon-box">
+                    <i class="fa-regular fa-lightbulb"></i>
+                </div>
+                <h3 data-i18n="support_heading">صندوق الأفكار وتطوير الميزات ✨</h3>
+                <p data-i18n="support_text">المفكرة دي معمولة عشانكِ! المكان هنا مخصص بالكامل لاستقبال أفكاركِ الإبداعية، اقتراحات لتطوير الواجهة، أو طلب ثيمات مخصصة وملصقات بكسل جديدة حابة تشوفيها في التحديثات الجاية.</p>
+                <a href="https://www.instagram.com/____________joo____?igsh=MTAzenBmeHIxazRncQ==" target="_blank" class="pill-btn primary-pill" style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px;">
+                    <i class="fa-brands fa-instagram"></i> <span data-i18n="support_btn">ارسل فكرتك ع الانستا  </span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let allTasks = [];
+        let globalTracks = ["عام", "مذاكرة", "برمجة", "جيم"];
+        let chartWeekly = null; let chartTasksPie = null; let chartPomoBar = null;
+        let totalTodayFocus = 0; let totalTodayBreak = 0;
+        let currentLang = localStorage.getItem('app_lang') || 'ar';
+
+        const translations = {
+            ar: {
+                logo: "تاسك فلو ",
+                menu_dashboard: "لوحة التحكم والتحليلات",
+                menu_tasks: "مفكرة المهام اليومية",
+                menu_pomodoro: "مؤقت البومودورو والتركيز",
+                menu_support: "صندوق الاقتراحات والدعم",
+                theme_title: "🎨 اختاري ستايل الألوان المفضل ليكي:",
+                focus_time: "وقت التركيز",
+                break_time: "وقت الراحة",
+                completed_tasks: "المهام المكتملة",
+                weekly_chart_title: "جراف خطي لمعدل الإنتاجية الأسبوعي",
+                tasks_placeholder: "ما هي خطتكِ التالية اليوم؟...",
+                add_track_btn: "+ إضافة سجل جديد",
+                pie_chart_title: "نسبة اكتمال المهام اليوم",
+                completed_label: "اكتملت",
+                pending_label: "متبقية",
+                pomo_focus_mode: "دقائق التركيز والإبداع حالياً 🎯",
+                pomo_break_mode: "وقت استراحة الروقان ☕",
+                edit_btn: "تعديل",
+                start_timer: "ابدأ المؤقت",
+                pause_timer: "إيقاف مؤقت",
+                resume_timer: "استئناف",
+                reset_timer: "إعادة ضبط",
+                compare_chart_title: "مقارنة فترات التركيز مقابل الاستراحة",
+                support_heading: "صندوق الأفكار وتطوير الميزات ✨",
+                support_text: "المفكرة دي معمولة عشانكِ! المكان هنا مخصص بالكامل لاستقبال أفكاركِ الإبداعية، اقتراحات لتطوير الواجهة، أو طلب ثيمات مخصصة وملصقات بكسل جديدة حابة تشوفيها في التحديثات الجاية.",
+                support_btn: "ارسل فكرتك علي الانستا  ",
+                no_tasks: "لا توجد مهام في المفكرة اليوم 🌸",
+                default_name: "ملكة الإنجاز الذكي ✨",
+                prompt_name: "أدخلي اسمكِ الجديد الفخم:",
+                prompt_track: "أدخلي اسم السجل أو المادة الجديدة:",
+                prompt_edit_task: "عدلي نص المهمة:",
+                streak_0: "ابدأي رحلة الالتزام اليوم! 💤",
+                streak_active: "يوم التزام متتالي",
+                error_add_task: "فشل إضافة المهمة",
+                error_delete_task: "فشل حذف المهمة",
+                error_edit_task: "فشل تحديث المهمة",
+                error_toggle_task: "فشل تحديث حالة المهمة",
+                error_add_track: "فشل إضافة التصنيف",
+                th_pistachio_green: "بستيج و اخضر 🍃",
+                th_pistachio_gold: "بستيج و جولد ✨",
+                th_neon_glow: "فسفوري اخضر و فسفوري اصفر ⚡",
+                th_mauve_silver: "موف و سيلفر 🔮",
+                th_pink_fuchsia: "بينك و فوشيا 🌸",
+                th_blue_silver: "ازرق و سيلفر 💎",
+                th_grey_silver: "رمادي و سيلفر 🌪️",
+                th_black_gold: "اسود و جولد 👑"
+            },
+            en: {
+                logo: "TaskFlow ",
+                menu_dashboard: "Dashboard & Analytics",
+                menu_tasks: "Daily Task Planner",
+                menu_pomodoro: "Pomodoro & Focus Timer",
+                menu_support: "Suggestions & Support",
+                theme_title: "🎨 Choose your favorite color style:",
+                focus_time: "Focus Time",
+                break_time: "Break Time",
+                completed_tasks: "Completed Tasks",
+                weekly_chart_title: "Weekly Productivity Line Chart",
+                tasks_placeholder: "What's your next plan today?...",
+                add_track_btn: "+ Add New Track",
+                pie_chart_title: "Today's Task Completion Rate",
+                completed_label: "Completed",
+                pending_label: "Pending",
+                pomo_focus_mode: "Focus and creativity minutes currently 🎯",
+                pomo_break_mode: "Relaxing break time ☕",
+                edit_btn: "Edit",
+                start_timer: "Start Timer",
+                pause_timer: "Pause",
+                resume_timer: "Resume",
+                reset_timer: "Reset",
+                compare_chart_title: "Focus vs Break Periods Comparison",
+                support_heading: "Ideas Box & Feature Requests ✨",
+                support_text: "This planner is crafted just for you! This space is fully dedicated to receiving your creative ideas, UI suggestions, or customized themes and pixel stickers you'd love to see in upcoming updates.",
+                support_btn: "Send your idea via Instagram  ",
+                no_tasks: "No tasks in the planner today 🌸",
+                default_name: "Smart Achievement Queen ✨",
+                prompt_name: "Enter your elegant new name:",
+                prompt_track: "Enter the name of the new track or subject:",
+                prompt_edit_task: "Edit the task text:",
+                streak_0: "Start your commitment journey today! 💤",
+                streak_active: "days commitment streak",
+                error_add_task: "Failed to add task",
+                error_delete_task: "Failed to delete task",
+                error_edit_task: "Failed to update task",
+                error_toggle_task: "Failed to update task status",
+                error_add_track: "Failed to add track",
+                th_pistachio_green: "Pistachio Green & Leaves 🍃",
+                th_pistachio_gold: "Pistachio & Gold ✨",
+                th_neon_glow: "Neon Green & Yellow ⚡",
+                th_mauve_silver: "Mauve & Silver 🔮",
+                th_pink_fuchsia: "Pink & Fuchsia 🌸",
+                th_blue_silver: "Blue & Silver 💎",
+                th_grey_silver: "Grey & Silver 🌪️",
+                th_black_gold: "Black & Gold 👑"
+            }
+        };
+        const trackLexicon = {
+            ar: { "عام": "عام", "مذاكرة": "مذاكرة", "برمجة": "برمجة", "جيم": "جيم" },
+            en: { "عام": "General", "مذاكرة": "Studying", "برمجة": "Programming", "جيم": "Gym" }
+        };
+
+        const appThemes = {
+            "pistachio-green": {
+                bg: "linear-gradient(135deg, #0f1411, #1e2e22, #152219)", glassBg: "rgba(163, 232, 149, 0.05)",
+                glassActive: "rgba(163, 232, 149, 0.12)", glassBorder: "1px solid rgba(163, 232, 149, 0.2)",
+                mint: "#a3e895", pink: "#ffb3c6", lavender: "#c3b1e1", textMain: "#f0f7f1", textMuted: "#8fa392"
+            },
+            "pistachio-gold": {
+                bg: "linear-gradient(135deg, #161510, #2d2a1e, #201e15)", glassBg: "rgba(244, 198, 111, 0.05)",
+                glassActive: "rgba(244, 198, 111, 0.15)", glassBorder: "1px solid rgba(244, 198, 111, 0.25)",
+                mint: "#f4c66f", pink: "#e2a863", lavender: "#fae5b8", textMain: "#fff7e9", textMuted: "#bdae93"
+            },
+            "neon-glow": {
+                bg: "linear-gradient(135deg, #050805, #0d1a0d, #091009)", glassBg: "rgba(57, 255, 20, 0.04)",
+                glassActive: "rgba(57, 255, 20, 0.12)", glassBorder: "1px solid rgba(57, 255, 20, 0.3)",
+                mint: "#39ff14", pink: "#ffff00", lavender: "#ccff00", textMain: "#e5ffe0", textMuted: "#6b8a66"
+            },
+            "mauve-silver": {
+                bg: "linear-gradient(135deg, #120f1a, #231d30, #181422)", glassBg: "rgba(195, 177, 225, 0.06)",
+                glassActive: "rgba(195, 177, 225, 0.15)", glassBorder: "1px solid rgba(195, 177, 225, 0.25)",
+                mint: "#c3b1e1", pink: "#e6e6fa", lavender: "#c0c0c0", textMain: "#f5f2fa", textMuted: "#968da3"
+            },
+            "pink-fuchsia": {
+                bg: "linear-gradient(135deg, #1c0a13, #381427, #260e1a)", glassBg: "rgba(255, 158, 187, 0.06)",
+                glassActive: "rgba(255, 158, 187, 0.16)", glassBorder: "1px solid rgba(255, 158, 187, 0.25)",
+                mint: "#ff9ebb", pink: "#ff007f", lavender: "#ff66b2", textMain: "#fff0f4", textMuted: "#b38f9b"
+            },
+            "blue-silver": {
+                bg: "linear-gradient(135deg, #0a111c, #142238, #0e1826)", glassBg: "rgba(0, 191, 255, 0.05)",
+                glassActive: "rgba(0, 191, 255, 0.14)", glassBorder: "1px solid rgba(0, 191, 255, 0.22)",
+                mint: "#00bfff", pink: "#c0c0c0", lavender: "#a8c3d8", textMain: "#edf5fa", textMuted: "#879cb0"
+            },
+            "grey-silver": {
+                bg: "linear-gradient(135deg, #141416, #27272a, #1c1c1e)", glassBg: "rgba(255, 255, 255, 0.04)",
+                glassActive: "rgba(255, 255, 255, 0.1)", glassBorder: "1px solid rgba(255, 255, 255, 0.15)",
+                mint: "#e0e0e0", pink: "#808080", lavender: "#c0c0c0", textMain: "#f4f4f4", textMuted: "#a1a1aa"
+            },
+            "black-gold": {
+                bg: "linear-gradient(135deg, #070708, #18181c, #111114)", glassBg: "rgba(207, 181, 59, 0.04)",
+                glassActive: "rgba(207, 181, 59, 0.14)", glassBorder: "1px solid rgba(207, 181, 59, 0.25)",
+                mint: "#ffd700", pink: "#cfb53b", lavender: "#aa7c11", textMain: "#fffdf0", textMuted: "#9c967a"
+            }
+        };
+
+        function getBadgeStyle(taskId) {
+            const seed = taskId % 3;
+            if (seed === 0) {
+                return `background: var(--pixel-mint); color: #101223; border: 1px solid var(--pixel-mint);`;
+            } else if (seed === 1) {
+                return `background: transparent; color: var(--pixel-pink); border: 1px solid var(--pixel-pink);`;
+            } else {
+                return `background: var(--glass-active); color: var(--pixel-lavender); border: 1px solid var(--pixel-lavender); backdrop-filter: blur(5px);`;
+            }
+        }
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('app_lang', lang);
+            
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) el.textContent = translations[lang][key];
+            });
+
+            document.getElementById('taskInput').placeholder = translations[lang]['tasks_placeholder'];
+            
+            document.getElementById('lang-ar').style.background = lang === 'ar' ? 'var(--glass-active)' : 'transparent';
+            document.getElementById('lang-en').style.background = lang === 'en' ? 'var(--glass-active)' : 'transparent';
+
+            if (!localStorage.getItem('user_profile_name')) {
+                document.getElementById('profileName').textContent = translations[lang]['default_name'];
+            }
+            
+            const currentModeText = document.getElementById('timerMode').textContent;
+            if(currentModeText.includes("دقائق") || currentModeText.includes("Focus")) {
+                document.getElementById('timerMode').textContent = translations[lang]['pomo_focus_mode'];
+            } else {
+                document.getElementById('timerMode').textContent = translations[lang]['pomo_break_mode'];
+            }
+
+            const savedStreak = parseInt(localStorage.getItem('current_streak_val')) || 0;
+            renderDynamicStreak(savedStreak);
+            
+            populateTracksDropdown();
+            renderTasksList();
+        }
+
+        function populateTracksDropdown() {
+            const select = document.getElementById('taskTrackSelect');
+            select.innerHTML = '';
+            globalTracks.forEach(t => { 
+                const displayName = (trackLexicon[currentLang] && trackLexicon[currentLang][t]) ? trackLexicon[currentLang][t] : t;
+                select.innerHTML += `<option value="${t}">${displayName}</option>`; 
+            });
+        }
+
+        function renderDynamicStreak(days) {
+            localStorage.setItem('current_streak_val', days);
+            const emojiEl = document.getElementById('streakEmoji');
+            const textEl = document.getElementById('streakDays');
+            
+            if (days === 0) {
+                emojiEl.textContent = "💤";
+                textEl.textContent = translations[currentLang]['streak_0'];
+            } else {
+                if (days < 5) emojiEl.textContent = "🌱";
+                else if (days >= 5 && days < 10) emojiEl.textContent = "🔥";
+                else if (days >= 10 && days < 30) emojiEl.textContent = "⚡";
+                else emojiEl.textContent = "👑";
+                
+                textEl.textContent = `${days} ${translations[currentLang]['streak_active']}`;
+            }
+        }
+
+        function applyTheme(themeName) {
+            const theme = appThemes[themeName];
+            if (!theme) return;
+
+            document.documentElement.style.setProperty('--bg-gradient', theme.bg);
+            document.documentElement.style.setProperty('--glass-bg', theme.glassBg);
+            document.documentElement.style.setProperty('--glass-active', theme.glassActive);
+            document.documentElement.style.setProperty('--glass-border', theme.glassBorder);
+            document.documentElement.style.setProperty('--pixel-mint', theme.mint);
+            document.documentElement.style.setProperty('--pixel-pink', theme.pink);
+            document.documentElement.style.setProperty('--pixel-lavender', theme.lavender);
+            document.documentElement.style.setProperty('--text-main', theme.textMain);
+            document.documentElement.style.setProperty('--text-muted', theme.textMuted);
+            
+            localStorage.setItem('app_user_theme', themeName);
+            document.getElementById('themeSelector').value = themeName;
+
+            document.getElementById('totalFocusStats').style.color = theme.mint;
+            document.getElementById('totalBreakStats').style.color = theme.pink;
+            document.getElementById('totalDoneStats').style.color = theme.lavender;
+
+            updateChartColors(theme);
+            renderTasksList();
+        }
+
+        function toggleDarkMode() {
+            const isDark = localStorage.getItem('app_dark_mode') === 'true';
+            const newDarkMode = !isDark;
+            localStorage.setItem('app_dark_mode', newDarkMode);
+            
+            const btn = document.getElementById('darkModeBtn');
+            if (newDarkMode) {
+                btn.textContent = '☀️';
+                document.body.style.filter = 'invert(1) hue-rotate(180deg)';
+                document.body.style.transition = 'filter 0.3s ease';
+            } else {
+                btn.textContent = '🌙';
+                document.body.style.filter = 'none';
+                document.body.style.transition = 'filter 0.3s ease';
+            }
+        }
+
+        function updateAchievements(achievements) {
+            const achievementData = {
+                'first_task': { icon: '🎯', label: 'أول مهمة', desc: 'أكمل أول مهمة' },
+                '7_day_streak': { icon: '🔥', label: '7 أيام متتالية', desc: 'حافظ على 7 أيام متتالية' },
+                '100_tasks_done': { icon: '💯', label: '100 مهمة', desc: 'أكمل 100 مهمة' },
+                '1000_focus_minutes': { icon: '⏰', label: '1000 دقيقة', desc: 'ركز 1000 دقيقة' }
+            };
+
+            const container = document.getElementById('achievementsContainer');
+            container.innerHTML = '';
+
+            Object.entries(achievementData).forEach(([key, data]) => {
+                const unlocked = achievements.includes(key);
+                const badge = document.createElement('div');
+                badge.className = `achievement-badge ${unlocked ? 'unlocked' : 'locked'}`;
+                badge.title = data.desc;
+                badge.innerHTML = `
+                    <span style="font-size: 20px;">${data.icon}</span>
+                    <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${data.label}</span>
+                `;
+                container.appendChild(badge);
+            });
+        }
+
+        function updateChartColors(theme) {
+            if (chartWeekly) {
+                chartWeekly.data.datasets[0].borderColor = theme.lavender;
+                chartWeekly.data.datasets[0].pointBackgroundColor = theme.pink;
+                chartWeekly.options.scales.x.ticks.color = theme.textMuted;
+                chartWeekly.update();
+            }
+            if (chartTasksPie) {
+                chartTasksPie.data.datasets[0].backgroundColor = [theme.mint, theme.glassActive];
+                chartTasksPie.options.plugins.legend.labels.color = theme.textMain;
+                chartTasksPie.update();
+            }
+            if (chartPomoBar) {
+                chartPomoBar.data.datasets[0].backgroundColor = [theme.mint, theme.pink];
+                chartPomoBar.options.scales.x.ticks.color = theme.textMain;
+                chartPomoBar.options.scales.y.ticks.color = theme.textMuted;
+                chartPomoBar.update();
+            }
+        }
+
+        function editProfileName() {
+            const currentName = document.getElementById('profileName').textContent;
+            const newName = prompt(translations[currentLang]['prompt_name'], currentName);
+            if (newName && newName.trim() !== "") {
+                document.getElementById('profileName').textContent = newName.trim();
+                localStorage.setItem('user_profile_name', newName.trim());
+                document.getElementById('resetNameBtn').style.display = 'inline-block';
+            }
+        }
+
+        function resetProfileName() {
+            localStorage.removeItem('user_profile_name');
+            document.getElementById('profileName').textContent = translations[currentLang]['default_name'];
+            document.getElementById('resetNameBtn').style.display = 'none';
+        }
+
+        function previewAndSaveAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result;
+                    document.getElementById('profileImage').src = base64Image;
+                    document.getElementById('profileImage').style.display = 'block';
+                    document.getElementById('avatarPlaceholder').style.display = 'none';
+                    document.getElementById('removeAvatarBtn').style.display = 'flex';
+                    localStorage.setItem('user_profile_avatar', base64Image);
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function removeAvatar(event) {
+            event.stopPropagation();
+            localStorage.removeItem('user_profile_avatar');
+            document.getElementById('profileImage').src = "";
+            document.getElementById('profileImage').style.display = 'none';
+            document.getElementById('avatarPlaceholder').style.display = 'flex';
+            document.getElementById('removeAvatarBtn').style.display = 'none';
+            document.getElementById('avatarInput').value = "";
+        }
+
+        function loadSavedProfile() {
+            const savedName = localStorage.getItem('user_profile_name');
+            const savedAvatar = localStorage.getItem('user_profile_avatar');
+            if (savedName) {
+                document.getElementById('profileName').textContent = savedName;
+                document.getElementById('resetNameBtn').style.display = 'inline-block';
+            }
+            if (savedAvatar) {
+                document.getElementById('profileImage').src = savedAvatar;
+                document.getElementById('profileImage').style.display = 'block';
+                document.getElementById('avatarPlaceholder').style.display = 'none';
+                document.getElementById('removeAvatarBtn').style.display = 'flex';
+            }
+        }
+
+        function switchPage(pageId, btn) {
+            document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.sidebar .menu-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            btn.classList.add('active');
+
+            // تحديث ورسم الجرافات فوراً عند فتح الـ Tab لعدم حدوث مشكلة الاختفاء
+            if (pageId === 'profile-page' && chartWeekly) {
+                chartWeekly.resize();
+                chartWeekly.update();
+            } else if (pageId === 'tasks-page') {
+                renderTasksPieChart();
+            } else if (pageId === 'pomodoro-page') {
+                renderPomoBarChart();
+            }
+        }
+
+        async function initApp() {
+            let data = { streak: 0, tracks: ["عام", "مذاكرة", "برمجة", "جيم"], tasks: [], weekly_stats: {"Sat":0, "Sun":0, "Mon":0, "Tue":0, "Wed":0, "Thu":0, "Fri":0}, level: 1, xp: 0, achievements: [], focus_minutes: 0, break_minutes: 0 };
+            
+            try {
+                const response = await fetch('/api/init');
+                if(response.ok) data = await response.json();
+            } catch(e) { console.log("Using fallbacks"); }
+
+            loadSavedProfile();
+            renderDynamicStreak(data.streak);
+            
+            const currentTheme = localStorage.getItem('app_user_theme') || 'pistachio-green';
+            applyTheme(currentTheme);
+            
+            const isDark = localStorage.getItem('app_dark_mode') === 'true';
+            if (isDark) {
+                document.getElementById('darkModeBtn').textContent = '☀️';
+                document.body.style.filter = 'invert(1) hue-rotate(180deg)';
+            }
+            
+            totalTodayFocus = data.focus_minutes || 0;
+            totalTodayBreak = data.break_minutes || 0;
+            
+            document.getElementById('totalFocusStats').textContent = `${totalTodayFocus} د`;
+            document.getElementById('totalBreakStats').textContent = `${totalTodayBreak} د`;
+            document.getElementById('playerLevel').textContent = `Lvl ${data.level || 1}`;
+            document.getElementById('playerXP').textContent = `${data.xp || 0}/100`;
+            document.getElementById('achievementCount').textContent = (data.achievements || []).length;
+            updateAchievements(data.achievements || []);
+            
+            globalTracks = data.tracks;
+            populateTracksDropdown();
+
+            allTasks = data.tasks;
+            document.getElementById('totalDoneStats').textContent = allTasks.filter(t => t.completed).length;
+
+            renderTasksList();
+            renderWeeklyChart(data.weekly_stats);
+            renderTasksPieChart(); // استدعاء أولي لنسبة المهام
+            renderPomoBarChart();   // استدعاء أولي لجراف البومودورو
+        }
+
+        function renderTasksList() {
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = '';
+            if(allTasks.length === 0) {
+                taskList.innerHTML = `<li style="justify-content: center; color: var(--text-muted); font-size: 13px; list-style:none;">${translations[currentLang]['no_tasks']}</li>`;
+                return;
+            }
+            allTasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'timeline-item';
+                if(task.completed) li.classList.add('completed');
+                
+                const trackDisplay = (trackLexicon[currentLang] && trackLexicon[currentLang][task.track]) ? trackLexicon[currentLang][task.track] : task.track;
+                const dynamicStyle = getBadgeStyle(task.id);
+
+                li.innerHTML = `
+                    <div class="task-left">
+                        <span class="task-badge" style="${dynamicStyle}">${trackDisplay}</span>
+                        <div class="task-text" onclick="toggleTaskStatus(${task.id}, ${task.completed})">${task.text}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="delete-btn" onclick="editTask(${task.id}, '${task.text}', '${task.track}')" title="تعديل"><i class="fa-regular fa-pen-to-square"></i></button>
+                        <button class="delete-btn" onclick="deleteTask(${task.id})" title="حذف"><i class="fa-regular fa-trash-can"></i></button>
+                    </div>
+                `;
+                taskList.appendChild(li);
+            });
+        }
+
+        async function addTask() {
+            const textInput = document.getElementById('taskInput');
+            const trackSelect = document.getElementById('taskTrackSelect');
+
+            if (!textInput.value.trim()) return;
+
+            try {
+                const response = await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: textInput.value.trim(), track: trackSelect.value })
+                });
+
+                if (!response.ok) throw new Error('Failed to add task');
+                const newTask = await response.json();
+                allTasks.push(newTask);
+                textInput.value = '';
+
+                document.getElementById('totalDoneStats').textContent = allTasks.filter(t => t.completed).length;
+                renderTasksList();
+                renderTasksPieChart();
+
+            } catch (err) {
+                console.error('Error adding task:', err);
+                alert(translations[currentLang]['error_add_task'] || 'فشل إضافة المهمة');
+            }
+        }
+
+        async function toggleTaskStatus(taskId, currentStatus) {
+            try {
+                const response = await fetch(`/api/tasks/${taskId}/toggle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ completed: !currentStatus })
+                });
+
+                if (!response.ok) throw new Error('Failed to toggle task');
+                const result = await response.json();
+
+                const task = allTasks.find(t => t.id === taskId);
+                if(task) task.completed = !currentStatus;
+
+                renderDynamicStreak(result.streak);
+                document.getElementById('totalDoneStats').textContent = allTasks.filter(t => t.completed).length;
+
+                if (result.level !== undefined) {
+                    document.getElementById('playerLevel').textContent = `Lvl ${result.level}`;
+                    document.getElementById('playerXP').textContent = `${result.xp}/100`;
+                }
+                if (result.achievements !== undefined) {
+                    document.getElementById('achievementCount').textContent = result.achievements.length;
+                    updateAchievements(result.achievements);
+                }
+
+                renderTasksList();
+                renderTasksPieChart();
+
+            } catch(err) {
+                console.error('Error toggling task:', err);
+                alert(translations[currentLang]['error_toggle_task'] || 'فشل تحديث المهمة');
+            }
+        }
+
+        async function deleteTask(taskId) {
+            try {
+                await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+                allTasks = allTasks.filter(task => task.id !== taskId);
+                document.getElementById('totalDoneStats').textContent = allTasks.filter(t => t.completed).length;
+
+                renderTasksList();
+                renderTasksPieChart();
+
+            } catch(err) {
+                console.error('Error deleting task:', err);
+                alert(translations[currentLang]['error_delete_task'] || 'فشل حذف المهمة');
+            }
+        }
+
+        async function editTask(taskId, currentText, currentTrack) {
+            const newText = prompt(translations[currentLang]['prompt_edit_task'] || 'عدل المهمة:', currentText);
+            if (!newText || !newText.trim()) return;
+
+            try {
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: newText.trim(), track: currentTrack })
+                });
+
+                if (!response.ok) throw new Error('Failed to update task');
+                const updatedTask = await response.json();
+
+                const task = allTasks.find(t => t.id === taskId);
+                if (task) {
+                    task.text = updatedTask.text;
+                    task.track = updatedTask.track;
+                }
+                renderTasksList();
+
+            } catch (err) {
+                console.error('Error editing task:', err);
+                alert(translations[currentLang]['error_edit_task'] || 'فشل تحديث المهمة');
+            }
+        }
+
+        async function addNewTrackPrompt() {
+            const name = prompt(translations[currentLang]['prompt_track']);
+            if(!name || !name.trim()) return;
+
+            try {
+                const response = await fetch('/api/tracks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ track_name: name.trim() })
+                });
+
+                if (!response.ok) throw new Error('Failed to add track');
+                const result = await response.json();
+
+                if(result.success){
+                    globalTracks = result.tracks;
+                    populateTracksDropdown();
+                }
+            } catch(err){
+                console.error('Error adding track:', err);
+                alert(translations[currentLang]['error_add_track'] || 'فشل إضافة التصنيف');
+            }
+        }
+
+        // --- مؤقت البومودورو ---
+        let timerInterval = null;
+        let workMinutes = 25; let breakMinutes = 5;
+        let timeLeft = workMinutes * 60; let isWorking = true;
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const secs = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('timer').textContent = `${mins}:${secs}`;
+        }
+
+        function setCustomTimes() {
+            workMinutes = parseInt(document.getElementById('customWorkMinutes').value) || 25;
+            breakMinutes = parseInt(document.getElementById('customBreakMinutes').value) || 5;
+            timeLeft = workMinutes * 60; isWorking = true;
+            document.getElementById('timerMode').textContent = translations[currentLang]['pomo_focus_mode'];
+            clearInterval(timerInterval); timerInterval = null;
+            document.getElementById('startBtn').textContent = translations[currentLang]['start_timer'];
+            updateTimerDisplay();
+            renderPomoBarChart();
+        }
+
+        async function savePomodoroData() {
+            try {
+                const response = await fetch('/api/pomodoro/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ focus_minutes: totalTodayFocus, break_minutes: totalTodayBreak })
+                });
+                if (!response.ok) throw new Error('Failed to save pomodoro data');
+                const result = await response.json();
+                
+                if (result.level !== undefined) {
+                    document.getElementById('playerLevel').textContent = `Lvl ${result.level}`;
+                    document.getElementById('playerXP').textContent = `${result.xp}/100`;
+                }
+                if (result.achievements !== undefined) {
+                    document.getElementById('achievementCount').textContent = result.achievements.length;
+                    updateAchievements(result.achievements);
+                }
+            } catch (error) {
+                console.error('Error saving pomodoro data:', error);
+            }
+        }
+
+        function toggleTimer() {
+            const startBtn = document.getElementById('startBtn');
+            if(timerInterval) {
+                clearInterval(timerInterval); timerInterval = null;
+                startBtn.textContent = translations[currentLang]['resume_timer'];
+                savePomodoroData();
+            } else {
+                startBtn.textContent = translations[currentLang]['pause_timer'];
+                timerInterval = setInterval(() => {
+                    if(timeLeft > 0) {
+                        timeLeft--;
+                        if(timeLeft % 60 === 0) {
+                            if(isWorking) { totalTodayFocus++; document.getElementById('totalFocusStats').textContent = `${totalTodayFocus} د`; }
+                            else { totalTodayBreak++; document.getElementById('totalBreakStats').textContent = `${totalTodayBreak} د`; }
+                            renderPomoBarChart(); // تحديث الجراف فوراً عند تغير الدقائق
+                        }
+                        updateTimerDisplay();
+                    } else {
+                        clearInterval(timerInterval); timerInterval = null;
+                        isWorking = !isWorking;
+                        if(isWorking) { timeLeft = workMinutes * 60; document.getElementById('timerMode').textContent = translations[currentLang]['pomo_focus_mode']; }
+                        else { timeLeft = breakMinutes * 60; document.getElementById('timerMode').textContent = translations[currentLang]['pomo_break_mode']; }
+                        startBtn.textContent = translations[currentLang]['start_timer'];
+                        updateTimerDisplay();
+                        renderPomoBarChart();
+                        savePomodoroData();
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval); timerInterval = null;
+            timeLeft = workMinutes * 60; isWorking = true;
+            document.getElementById('timerMode').textContent = translations[currentLang]['pomo_focus_mode'];
+            document.getElementById('startBtn').textContent = translations[currentLang]['start_timer'];
+            updateTimerDisplay();
+        }
+
+        // --- الرسومات البيانية ---
+        function renderWeeklyChart(stats) {
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            const daysMapping = currentLang === 'ar' ? 
+                { "Sat":"السبت", "Sun":"الأحد", "Mon":"الإثنين", "Tue":"الثلاثاء", "Wed":"الأربعاء", "Thu":"الخميس", "Fri":"الجمعة" } : 
+                { "Sat":"Sat", "Sun":"Sun", "Mon":"Mon", "Tue":"Tue", "Wed":"Wed", "Thu":"Thu", "Fri":"Fri" };
+
+            if(chartWeekly) chartWeekly.destroy();
+            chartWeekly = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(stats).map(d => daysMapping[d] || d),
+                    datasets: [{
+                        data: Object.values(stats),
+                        borderColor: '#c3b1e1', backgroundColor: 'rgba(255, 255, 255, 0.01)',
+                        borderWidth: 3, tension: 0.4, fill: true, pointBackgroundColor: '#ff9ebb', pointRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x:{ ticks:{ color:'#8b92b6', font:{ family:'Cairo', size:11 } }, grid:{ display:false } }, y:{ beginAtZero:true, ticks:{ display:false }, grid:{ display:false } } } }
+            });
+        }
+
+        function renderTasksPieChart() {
+            const canvas = document.getElementById('tasksPieChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const done = allTasks.filter(t => t.completed).length;
+            const pending = allTasks.length - done;
+            if(chartTasksPie) chartTasksPie.destroy();
+            chartTasksPie = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [translations[currentLang]['completed_label'], translations[currentLang]['pending_label']],
+                    datasets: [{ data: [done || 0, pending || (allTasks.length === 0 ? 1 : 0)], backgroundColor: ['#a3e895', 'rgba(255,255,255,0.05)'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color:'#fff', font:{ family:'Cairo', size:11 } } } } }
+            });
+        }
+
+        function renderPomoBarChart() {
+            const canvas = document.getElementById('pomodoroBarChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if(chartPomoBar) chartPomoBar.destroy();
+            chartPomoBar = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: currentLang === 'ar' ? ['التركيز (دقائق)', 'الراحة (دقائق)'] : ['Focus (mins)', 'Break (mins)'],
+                    datasets: [{ data: [totalTodayFocus, totalTodayBreak], backgroundColor: ['#a3e895', '#ff9ebb'], borderRadius: 8, barThickness: 24 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x:{ ticks:{ color:'#fff', font:{ family:'Cairo' } }, grid:{ display:false } }, y:{ beginAtZero:true, ticks:{ color:'#8b92b6' }, grid:{ color:'rgba(255,255,255,0.03)' } } } }
+            });
+        }
+
+        // تنظيم التشغيل المتتالي لمنع الـ Race Condition
+        window.onload = async function() {
+            changeLanguage(currentLang);
+            await initApp();
+        };
+    </script>
+</body>
+</html>
