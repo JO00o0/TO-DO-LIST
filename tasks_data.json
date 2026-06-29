@@ -1,7 +1,14 @@
 {
-"streak": 0,
-"last_completion_date": "",
-"weekly_stats": {
+    "tasks": [],
+    "tracks": [
+        "عام",
+        "مذاكرة",
+        "برمجة",
+        "جيم"
+    ],
+    "streak": 0,
+    "last_completion_date": "",
+    "weekly_stats": {
         "Sat": 0,
         "Sun": 0,
         "Mon": 0,
@@ -9,5 +16,10 @@
         "Wed": 0,
         "Thu": 0,
         "Fri": 0
-    }
+    },
+    "focus_minutes": 0,
+    "break_minutes": 0,
+    "level": 1,
+    "xp": 0,
+    "achievements": []
 }

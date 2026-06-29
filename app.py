@@ -5,34 +5,54 @@ import os
 
 app = Flask(__name__)
 
-# مسارات ملفات حفظ البيانات
 DATA_FILE = 'tasks_data.json'
 
+DEFAULT_DATA = {
+    "tasks": [],
+    "tracks": ["عام", "مذاكرة", "برمجة", "جيم"],
+    "streak": 0,
+    "last_completion_date": "",
+    "weekly_stats": {"Sat": 0, "Sun": 0, "Mon": 0, "Tue": 0, "Wed": 0, "Thu": 0, "Fri": 0},
+    "focus_minutes": 0,
+    "break_minutes": 0,
+    "level": 1,
+    "xp": 0,
+    "achievements": []
+}
+
 def load_data():
-    """تحميل البيانات بالكامل من ملف الـ JSON"""
-    if not os.path.exists(DATA_FILE):
-        return {
-            "tasks": [],
-            "tracks": ["عام", "مذاكرة", "برمجة", "جيم"],
-            "streak": 0,
-            "last_completion_date": "",
-            "weekly_stats": {"Sat": 0, "Sun": 0, "Mon": 0, "Tue": 0, "Wed": 0, "Thu": 0, "Fri": 0},
-            "focus_minutes": 0,
-            "break_minutes": 0,
-            "level": 1,
-            "xp": 0,
-            "achievements": []
-        }
-    with open(DATA_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    """Load all data from the JSON file.
+    Handles: file missing, file empty, file corrupted (JSONDecodeError).
+    Always returns a fully-populated dict with all expected keys.
+    """
+    data = {}
+
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+            if content:
+                data = json.loads(content)
+        except (json.JSONDecodeError, ValueError, IOError):
+            # File is corrupted or unreadable — start fresh and overwrite
+            data = {}
+
+    # Merge defaults so missing keys never cause KeyErrors
+    for key, default_val in DEFAULT_DATA.items():
+        if key not in data:
+            data[key] = default_val
+
+    return data
 
 def save_data(data):
-    """حفظ البيانات بالكامل"""
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+    """Save all data atomically to prevent corruption on crash/interrupt."""
+    tmp_file = DATA_FILE + '.tmp'
+    with open(tmp_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+    os.replace(tmp_file, DATA_FILE)  # atomic rename on all platforms
 
 def check_and_update_streak(data, is_new_completion=False):
-    """ميكانيكية حساب الـ Streak الناري بشكل يومي ذكي"""
+    """Smart daily streak calculation"""
     today_str = str(date.today())
     yesterday_str = str(date.today() - timedelta(days=1))
     last_date = data.get("last_completion_date", "")
@@ -77,12 +97,12 @@ def add_task():
     save_data(data)
     return jsonify(new_task), 201
 
-@app.route('/api/tasks/<int:task_id>/toggle', methods=['POST', 'PUT'])
+@app.route('/api/tasks/<int:task_id>/toggle', methods=['POST'])
 def toggle_task(task_id):
     data = load_data()
     req = request.json
     completed = req.get("completed", False)
-    
+
     for task in data["tasks"]:
         if task["id"] == task_id:
             if completed and not task["completed"]:
@@ -91,14 +111,14 @@ def toggle_task(task_id):
                 day_name = datetime.now().strftime('%a')
                 if day_name in data["weekly_stats"]:
                     data["weekly_stats"][day_name] += 1
-                
-                # إضافة XP عند إكمال المهمة
+
+                # Add XP on task completion
                 data["xp"] += 10
                 if data["xp"] >= 100:
                     data["level"] += 1
                     data["xp"] -= 100
-                
-                # فحص الإنجازات
+
+                # Check achievements
                 completed_count = len([t for t in data["tasks"] if t["completed"]])
                 if completed_count == 1 and "first_task" not in data["achievements"]:
                     data["achievements"].append("first_task")
@@ -109,9 +129,16 @@ def toggle_task(task_id):
             else:
                 task["completed"] = completed
             break
-            
+
     save_data(data)
-    return jsonify({"success": True, "streak": data["streak"], "weekly_stats": data["weekly_stats"], "level": data["level"], "xp": data["xp"], "achievements": data["achievements"]})
+    return jsonify({
+        "success": True,
+        "streak": data["streak"],
+        "weekly_stats": data["weekly_stats"],
+        "level": data["level"],
+        "xp": data["xp"],
+        "achievements": data["achievements"]
+    })
 
 @app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
@@ -124,14 +151,14 @@ def delete_task(task_id):
 def update_task(task_id):
     data = load_data()
     req = request.json
-    
+
     for task in data["tasks"]:
         if task["id"] == task_id:
             task["text"] = req.get("text", task["text"])
             task["track"] = req.get("track", task["track"])
             save_data(data)
             return jsonify(task), 200
-    
+
     return jsonify({"error": "Task not found"}), 404
 
 @app.route('/api/tracks', methods=['POST'])
@@ -148,16 +175,21 @@ def add_track():
 def save_pomodoro():
     data = load_data()
     req = request.json
-    
+
     data["focus_minutes"] += req.get("focus_minutes", 0)
     data["break_minutes"] += req.get("break_minutes", 0)
-    
-    # فحص الإنجاز 1000 دقيقة تركيز
+
+    # Check 1000 focus minutes achievement
     if data["focus_minutes"] >= 1000 and "1000_focus_minutes" not in data["achievements"]:
         data["achievements"].append("1000_focus_minutes")
-    
+
     save_data(data)
-    return jsonify({"success": True, "level": data["level"], "xp": data["xp"], "achievements": data["achievements"]})
+    return jsonify({
+        "success": True,
+        "level": data["level"],
+        "xp": data["xp"],
+        "achievements": data["achievements"]
+    })
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
