@@ -2,8 +2,21 @@ from flask import Flask, request, jsonify, render_template
 from datetime import datetime, date, timedelta
 import json
 import os
+import threading
+import webview
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static") 
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
+def run_flask():
+    app.run(
+        host="127.0.0.1",
+        port=5000
+    )
 
 DATA_FILE = 'tasks_data.json'
 
@@ -191,5 +204,15 @@ def save_pomodoro():
         "achievements": data["achievements"]
     })
 
+
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+     threading.Thread(
+        target=run_flask
+    ).start()
+
+webview.create_window(
+        "My App",
+        "http://127.0.0.1:5000"
+    )
+app.run(host="0.0.0.0", port=5000)
+webview.start()
