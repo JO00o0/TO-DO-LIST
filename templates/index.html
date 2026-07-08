@@ -1,0 +1,3682 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow Pro ✨</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/nes.css@2.3.0/css/nes.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* ─── CSS Variables / Theme Tokens ─── */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f121d, #1a1e36, #141625);
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-active: rgba(255, 255, 255, 0.08);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+            --pixel-mint: #a3e895;
+            --pixel-pink: #ff9ebb;
+            --pixel-lavender: #c3b1e1;
+            --text-main: #f1f2f6;
+            --text-muted: #8b92b6;
+            /* Dual-color accent variables */
+            --accent-a: #a3e895;
+            --accent-b: #ff9ebb;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html, body { max-width: 100%; overflow-x: hidden; }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            margin: 0; padding: 0;
+            min-height: 100vh;
+            height: 100vh;
+            transition: background 0.5s ease;
+            position: relative;
+        }
+
+        /* ─── App shell (sidebar + main content) ───
+           Hidden until onboarding is complete; revealed with an
+           entrance animation by the JS onboarding flow. */
+        .app-shell,
+        .main-dashboard {
+            display: none;
+            min-height: 100vh;
+            height: 100vh;
+            width: 100%;
+            /* Symmetrical bounding box so the dashboard never sits pushed
+               to one side on wide/ultra-wide monitors — it stays centered
+               with equal blank space on both left and right. */
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        html.app-ready .app-shell { display: flex; }
+        html.app-ready .onboarding-screen { display: none !important; }
+
+        .app-shell.shell-entering {
+            display: flex;
+            animation: shellFadeSlideIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes shellFadeSlideIn {
+            from { opacity: 0; transform: translateY(22px) scale(0.985); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ─── Hamburger (mobile only) ─── */
+        .hamburger-btn {
+            display: none;
+            position: fixed;
+            top: 14px;
+            inset-inline-end: 14px;
+            z-index: 1001;
+            width: 44px; height: 44px;
+            min-width: 44px; min-height: 44px;
+            border-radius: 14px;
+            background: rgba(15, 18, 29, 0.75);
+            border: var(--glass-border);
+            backdrop-filter: blur(12px);
+            color: var(--accent-a);
+            font-size: 18px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s ease, background 0.25s ease;
+        }
+        .hamburger-btn:active { transform: scale(0.9); }
+        .hamburger-btn:hover { box-shadow: 0 0 18px rgba(163,232,149,0.18); }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 6, 12, 0.55);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.35s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        /* ─── Change Style Flow: sequential modals ───
+           Step 1 asks the soft-reset question, step 2 (opened only after
+           step 1 is answered) presents the girl/boy style choice. Never
+           more than one of these is visible at a time. */
+        .style-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 6, 12, 0.6);
+            backdrop-filter: blur(6px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .style-modal-overlay.show {
+            display: flex;
+            animation: styleModalFadeIn 0.25s ease;
+        }
+        @keyframes styleModalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .style-modal-box {
+            background: rgba(20, 22, 37, 0.97);
+            border: var(--glass-border);
+            border-radius: 24px;
+            padding: 28px 24px;
+            max-width: 380px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: styleModalPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes styleModalPopIn {
+            from { opacity: 0; transform: scale(0.92) translateY(10px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .style-modal-title {
+            font-weight: 900;
+            font-size: 17px;
+            margin-bottom: 10px;
+            color: var(--accent-a);
+        }
+        .style-modal-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 22px;
+            line-height: 1.6;
+        }
+        .style-modal-btn-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .style-modal-btn {
+            flex: 1;
+            min-width: 120px;
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            color: var(--text-main);
+            border-radius: 16px;
+            padding: 12px 16px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .style-modal-btn:hover { background: var(--glass-active); transform: translateY(-2px); }
+        .style-modal-btn.primary { border-color: var(--accent-a); color: var(--accent-a); }
+        .style-modal-btn.danger  { border-color: var(--accent-b); color: var(--accent-b); }
+
+        .style-choice-row {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .style-choice-card {
+            flex: 1;
+            min-width: 130px;
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            border-radius: 18px;
+            padding: 22px 14px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+        }
+        .style-choice-card:hover {
+            background: var(--glass-active);
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            border-color: var(--accent-a);
+        }
+        .style-choice-emoji { font-size: 32px; display: block; margin-bottom: 8px; }
+        .style-choice-label { font-size: 13px; font-weight: 700; }
+
+        /* ─── Sidebar ─── */
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            background: rgba(10, 12, 22, 0.4);
+            backdrop-filter: blur(20px);
+            border-inline-end: var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 15px;
+            transition: border 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto;
+        }
+
+        .logo-area {
+            font-weight: 900;
+            font-size: 20px;
+            color: var(--accent-a);
+            text-shadow: 0 0 12px var(--accent-a);
+            text-align: center;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .logo-area span { color: var(--accent-b); text-shadow: 0 0 12px var(--accent-b); }
+
+        .menu-btn {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            color: var(--text-muted);
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            text-align: start;
+        }
+        .menu-btn:hover, .menu-btn.active {
+            background: var(--glass-active);
+            color: var(--accent-a);
+            border-color: var(--accent-a);
+            box-shadow: 0 0 15px rgba(255,255,255,0.05);
+            transform: scale(1.02);
+        }
+
+        /* ─── Main Content ─── */
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            padding: clamp(16px, 4vw, 40px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .page-panel { display: none; width: 100%; max-width: 750px; margin: 0 auto; }
+        .page-panel.active {
+            display: block;
+            animation: smoothSlideUp 0.4s ease-out;
+        }
+        @keyframes smoothSlideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            font-weight: 900;
+            font-size: clamp(20px, 4vw, 26px);
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: var(--accent-a);
+        }
+        h2 .title-accent { color: var(--accent-b); }
+
+        /* ─── Glass Cards ─── */
+        .glass-card {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            padding: clamp(16px, 4vw, 25px);
+            margin-bottom: 25px;
+            transition: background 0.3s, border 0.3s;
+        }
+
+        /* ─── Profile ─── */
+        .profile-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 20px;
+            background: rgba(255,255,255,0.01);
+            border: var(--glass-border);
+            border-radius: 24px;
+            padding: clamp(16px, 4vw, 25px);
+            margin: 0 auto 25px auto;
+            width: 100%;
+            max-width: 1200px;
+            transition: border 0.3s;
+        }
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .avatar-wrapper { position: relative; width: 90px; height: 90px; flex-shrink: 0; }
+        .avatar-pixel {
+            width: 100%; height: 100%;
+            background: var(--glass-active);
+            border-radius: 24px;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px dashed var(--accent-b);
+            cursor: pointer; overflow: hidden;
+            transition: border 0.3s, background 0.3s, box-shadow 0.3s;
+            box-shadow: 0 0 18px rgba(255, 158, 187, 0.12);
+        }
+        .avatar-pixel:hover {
+            box-shadow: 0 0 28px rgba(255, 158, 187, 0.28);
+            border-style: solid;
+        }
+
+        /* ─── Gender-driven UI feeling ───
+           Layered purely as visual accents on top of the active color theme:
+           softer/rounder + warmer glow for "female", squarer/sharper +
+           cooler glow for "male". Both stay within the same theme palette
+           (--accent-a/--accent-b), so any of the existing color themes still
+           applies correctly underneath. */
+        body.gender-female .avatar-pixel {
+            border-radius: 28px;
+            border-style: dashed;
+        }
+        body.gender-male .avatar-pixel {
+            border-radius: 14px;
+            border-style: solid;
+            box-shadow: 0 0 18px rgba(163, 232, 149, 0.18);
+        }
+        body.gender-male .avatar-pixel:hover {
+            box-shadow: 0 0 28px rgba(163, 232, 149, 0.3);
+        }
+        body.gender-female .glass-card,
+        body.gender-female .profile-container,
+        body.gender-female .pomo-single-card {
+            border-radius: 26px;
+        }
+        body.gender-male .glass-card,
+        body.gender-male .profile-container,
+        body.gender-male .pomo-single-card {
+            border-radius: 16px;
+        }
+        body.gender-male .menu-btn.active,
+        body.gender-male .menu-btn:hover {
+            box-shadow: 0 0 15px rgba(163,232,149,0.12);
+        }
+        .remove-avatar-btn {
+            position: absolute; top: -5px; left: -5px;
+            background: #ff5f56; color: #fff; border: none;
+            border-radius: 50%; width: 20px; height: 20px;
+            font-size: 10px; cursor: pointer; display: none;
+            align-items: center; justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10;
+        }
+        .profile-info { min-width: 0; flex: 1; }
+        .profile-info h3 { margin: 0 0 6px 0; font-weight: 900; font-size: clamp(17px, 4vw, 22px); color: var(--accent-a); overflow-wrap: anywhere; }
+
+        .streak-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            color: var(--accent-b); font-size: 14px; font-weight: 700;
+            background: rgba(0,0,0,0.15); padding: 4px 12px; border-radius: 12px;
+        }
+
+        /* ─── Stats Grid / Controls Row ─── */
+        .grid-stats,
+        .controls-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 0 auto 25px auto;
+            width: 100%;
+            max-width: 1200px;
+            justify-content: center;
+            align-items: stretch;
+            justify-items: stretch;
+        }
+        .card-stat {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            border-radius: 20px;
+            padding: clamp(12px, 3vw, 20px) clamp(8px, 2vw, 15px);
+            text-align: center;
+            transition: 0.3s;
+            min-width: 0;
+        }
+        .card-stat:hover { transform: translateY(-3px); background: var(--glass-active); }
+        .card-stat-val { font-size: clamp(16px, 4vw, 22px); font-weight: 900; color: var(--accent-a); display: block; margin-top: 5px; overflow-wrap: anywhere; }
+        .card-stat:nth-child(2) .card-stat-val { color: var(--accent-b); }
+        .card-stat:nth-child(3) .card-stat-val { color: var(--pixel-lavender); }
+        .card-stat-lbl { font-size: clamp(10px, 2.5vw, 12px); color: var(--text-muted); font-weight: 600; }
+
+        /* ─── Inline task input ─── */
+        .input-group {
+            display: flex;
+            flex-wrap: wrap;
+            background: rgba(0,0,0,0.2);
+            border: var(--glass-border);
+            border-radius: 20px;
+            padding: 6px;
+            margin-bottom: 20px;
+            gap: 10px;
+            transition: border 0.3s;
+        }
+        .input-group:focus-within {
+            border-color: var(--accent-a);
+            box-shadow: 0 0 10px rgba(163,232,149,0.15);
+        }
+        input, select {
+            background: transparent; border: none; outline: none;
+            color: #fff; font-family: 'Cairo'; font-weight: 600; padding: 10px;
+        }
+        input { flex: 1; min-width: 120px; font-size: 16px; }
+        input::placeholder { color: var(--text-muted); }
+        select {
+            background: var(--glass-active);
+            border-radius: 14px; font-size: 12px;
+            color: var(--accent-a); padding: 0 15px;
+        }
+        select option { background: #1a1e36; color: #fff; }
+
+        .add-btn {
+            background: var(--accent-a);
+            color: #101223; border: none; border-radius: 14px;
+            width: 44px; height: 44px; min-width: 44px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: bold; transition: 0.2s;
+            flex-shrink: 0;
+        }
+        .add-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+        /* ─── Task Timeline ─── */
+        .timeline-list { list-style: none; padding: 0; margin: 0; position: relative; padding-inline-start: 25px; max-width: 100%; }
+        .timeline-list::before {
+            content: ''; position: absolute;
+            inset-inline-start: 8px; top: 10px; bottom: 10px;
+            width: 2px; background: rgba(255,255,255,0.1);
+        }
+        .timeline-item {
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            padding: 15px 20px;
+            border-radius: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            row-gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .timeline-item::after {
+            content: ''; position: absolute;
+            inset-inline-start: -21px; top: 50%; transform: translateY(-50%);
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--text-muted); border: 3px solid #0f121d;
+            transition: 0.3s;
+        }
+
+        .task-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+
+        /* Custom pixel checkbox */
+        .task-checkbox {
+            width: 22px; height: 22px; flex-shrink: 0;
+            border: 2px solid var(--accent-b);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: transparent;
+            font-size: 13px;
+            color: transparent;
+            user-select: none;
+        }
+        .task-checkbox:hover { border-color: var(--accent-a); background: rgba(163,232,149,0.1); }
+        .task-checkbox.checked {
+            background: var(--accent-a);
+            border-color: var(--accent-a);
+            color: #101223;
+        }
+
+        .task-text {
+            font-weight: 600; font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            word-break: break-word;
+        }
+
+        .task-badge {
+            font-size: 11px; padding: 4px 12px; border-radius: 12px;
+            font-weight: 700; transition: all 0.3s ease; white-space: nowrap;
+        }
+
+        .timeline-item.completed { border-color: var(--accent-a); background: rgba(255,255,255,0.01); }
+        .timeline-item.completed::after { background: var(--accent-a); box-shadow: 0 0 8px var(--accent-a); }
+        .timeline-item.completed .task-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .task-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .delete-btn { background: transparent; border: none; color: var(--accent-b); cursor: pointer; font-size: 15px; opacity: 0.7; }
+        .delete-btn:hover { opacity: 1; transform: scale(1.1); }
+
+        /* ─── Empty state pixel art ─── */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            list-style: none;
+        }
+        .empty-state .pixel-art-char {
+            font-size: 60px;
+            display: block;
+            margin-bottom: 12px;
+            animation: floatChar 3s ease-in-out infinite;
+        }
+        @keyframes floatChar {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .empty-state p { margin: 6px 0; font-size: 13px; font-weight: 600; }
+        .empty-state .sub { font-size: 11px; opacity: 0.6; }
+
+        /* ─── Pomodoro Timer ─── */
+        .timer-container { text-align: center; padding: 40px 20px; }
+
+        .timer-mode-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 18px;
+            transition: all 0.5s ease;
+            border: 2px solid transparent;
+        }
+        .timer-mode-banner.focus-mode {
+            background: rgba(163, 232, 149, 0.12);
+            border-color: var(--accent-a);
+            color: var(--accent-a);
+            box-shadow: 0 0 20px rgba(163, 232, 149, 0.2);
+        }
+        .timer-mode-banner.break-mode {
+            background: rgba(255, 158, 187, 0.12);
+            border-color: var(--accent-b);
+            color: var(--accent-b);
+            box-shadow: 0 0 20px rgba(255, 158, 187, 0.25);
+        }
+
+        .timer-display {
+            font-size: 80px; font-weight: 900;
+            font-family: monospace; margin: 10px 0;
+            transition: color 0.5s ease, text-shadow 0.5s ease;
+        }
+        .timer-display.focus-time {
+            color: var(--accent-a);
+            text-shadow: 0 0 30px rgba(163,232,149,0.4);
+        }
+        .timer-display.break-time {
+            color: var(--accent-b);
+            text-shadow: 0 0 30px rgba(255,158,187,0.4);
+        }
+
+        /* Pomodoro background glow overlay */
+        .timer-glow-overlay {
+            position: absolute; inset: 0;
+            border-radius: 24px;
+            pointer-events: none;
+            transition: background 0.8s ease, opacity 0.8s ease;
+            opacity: 0;
+        }
+        .glass-card.pomo-card { position: relative; overflow: hidden; }
+        .glass-card.pomo-card.glow-focus .timer-glow-overlay {
+            background: radial-gradient(ellipse at center, rgba(163,232,149,0.08) 0%, transparent 70%);
+            opacity: 1;
+        }
+        .glass-card.pomo-card.glow-break .timer-glow-overlay {
+            background: radial-gradient(ellipse at center, rgba(255,158,187,0.1) 0%, transparent 70%);
+            opacity: 1;
+        }
+
+        .pill-btn {
+            background: var(--glass-bg); border: var(--glass-border);
+            color: #fff; padding: 10px 30px; border-radius: 25px;
+            cursor: pointer; font-weight: 700; margin: 0 6px;
+            font-family: 'Cairo'; transition: 0.3s; font-size: 14px;
+        }
+        .pill-btn:hover { background: var(--glass-active); color: var(--accent-a); border-color: var(--accent-a); }
+        .pill-btn.primary-pill { background: var(--accent-a); color: #101223; border-color: var(--accent-a); }
+        .pill-btn.primary-pill:hover { filter: brightness(1.1); }
+
+        .chart-box { background: rgba(0,0,0,0.2); border: var(--glass-border); border-radius: 24px; padding: 20px; }
+
+        /* ─── Support Page ─── */
+        .support-card {
+            display: flex; flex-direction: column; align-items: center;
+            text-align: center; padding: 40px 30px;
+        }
+        .support-icon-box {
+            font-size: 45px; color: var(--accent-b); margin-bottom: 20px;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); filter: drop-shadow(0 0 10px var(--accent-b)); }
+            100% { transform: scale(1); }
+        }
+        .support-card h3 { margin: 0 0 15px 0; font-weight: 900; font-size: 22px; color: var(--accent-a); }
+        .support-card p { margin: 0 0 30px 0; font-size: 14px; color: var(--text-muted); line-height: 1.7; max-width: 520px; }
+
+        /* ─── Achievements ─── */
+        .achievement-badge {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 12px 8px; border-radius: 12px;
+            background: rgba(0,0,0,0.2);
+            cursor: pointer; transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .achievement-badge.unlocked {
+            background: rgba(255,255,255,0.08);
+            border-color: var(--accent-a);
+            box-shadow: 0 0 15px rgba(163,232,149,0.2);
+        }
+        .achievement-badge.locked { opacity: 0.4; filter: grayscale(100%); }
+        .achievement-badge:hover { transform: scale(1.05); }
+        .achievement-badge.unlocked:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 22px rgba(163,232,149,0.4);
+        }
+
+        /* ─── Dual-color theme accent alternation for cards ─── */
+        .accent-a { color: var(--accent-a) !important; }
+        .accent-b { color: var(--accent-b) !important; }
+
+        /* ─── Inline edit mode for tasks ─── */
+        .task-edit-input {
+            background: transparent; border: none; border-bottom: 1px solid var(--accent-a);
+            color: #fff; font-family: 'Cairo'; font-weight: 600; font-size: 14px;
+            outline: none; width: 100%; padding: 2px 0;
+        }
+
+        /* ─── Sound indicator ─── */
+        .sound-toggle {
+            background: none; border: none; cursor: pointer;
+            font-size: 14px; color: var(--text-muted); padding: 6px;
+            border-radius: 8px; transition: 0.2s;
+        }
+        .sound-toggle:hover { color: var(--accent-a); }
+        .sound-toggle.muted { opacity: 0.4; }
+
+        /* ─── Inline edit pixel art deco ─── */
+        .tasks-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        /* ─── Pixel art sparkle animation on task complete ─── */
+        @keyframes sparkle-pop {
+            0%   { transform: scale(1); }
+            30%  { transform: scale(1.15); }
+            60%  { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+        .timeline-item.just-completed {
+            animation: sparkle-pop 0.4s ease;
+        }
+
+        /* Page-level layout */
+        #pomodoro-page h2 { margin-bottom: 10px; }
+        .pomo-subtitle {
+            font-size: 13px; color: var(--text-muted); font-weight: 600;
+            margin: 0 0 28px 0;
+        }
+
+        .pomo-dual-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: start;
+        }
+
+        /* ── Card base ── */
+        .pomo-single-card {
+            border-radius: 28px;
+            padding: clamp(18px, 4vw, 30px) clamp(14px, 3vw, 22px) 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border: 1.5px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.025);
+            backdrop-filter: blur(18px);
+            min-width: 0;
+            transition: border-color 0.45s ease, box-shadow 0.45s ease,
+                        background 0.45s ease, opacity 0.35s ease, filter 0.35s ease;
+        }
+
+        /* ── Focus card identity ── */
+        .pomo-single-card.focus-card {
+            border-color: rgba(163,232,149,0.18);
+        }
+        .pomo-single-card.focus-card.pomo-running {
+            border-color: var(--accent-a);
+            background: rgba(163,232,149,0.05);
+            box-shadow: 0 0 0 1px rgba(163,232,149,0.12),
+                        0 8px 40px rgba(163,232,149,0.15),
+                        inset 0 1px 0 rgba(163,232,149,0.08);
+        }
+
+        /* ── Break card identity ── */
+        .pomo-single-card.break-card {
+            border-color: rgba(255,158,187,0.18);
+        }
+        .pomo-single-card.break-card.pomo-running {
+            border-color: var(--accent-b);
+            background: rgba(255,158,187,0.05);
+            box-shadow: 0 0 0 1px rgba(255,158,187,0.12),
+                        0 8px 40px rgba(255,158,187,0.15),
+                        inset 0 1px 0 rgba(255,158,187,0.08);
+        }
+
+        /* Inactive card fade */
+        .pomo-single-card.pomo-inactive {
+            opacity: 0.35;
+            filter: saturate(0.3) brightness(0.85);
+            pointer-events: none;
+        }
+
+        /* ── Decorative gradient strip at top of each card ── */
+        .pomo-single-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 3px; border-radius: 28px 28px 0 0;
+            transition: opacity 0.4s;
+        }
+        .focus-card::before {
+            background: linear-gradient(90deg, transparent, var(--accent-a), transparent);
+            opacity: 0.5;
+        }
+        .break-card::before {
+            background: linear-gradient(90deg, transparent, var(--accent-b), transparent);
+            opacity: 0.5;
+        }
+        .focus-card.pomo-running::before,
+        .break-card.pomo-running::before { opacity: 1; }
+
+        /* ── Glow overlay ── */
+        .pomo-glow-overlay {
+            position: absolute; inset: 0; border-radius: 28px;
+            pointer-events: none;
+            transition: background 0.6s ease;
+        }
+        .focus-card.pomo-running .pomo-glow-overlay {
+            background: radial-gradient(ellipse at 50% 0%, rgba(163,232,149,0.1) 0%, transparent 65%);
+        }
+        .break-card.pomo-running .pomo-glow-overlay {
+            background: radial-gradient(ellipse at 50% 0%, rgba(255,158,187,0.1) 0%, transparent 65%);
+        }
+
+        /* ── Status pill ── */
+        .pomo-status-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 800;
+            padding: 4px 12px; border-radius: 20px;
+            margin-bottom: 14px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+        .focus-card .pomo-status-pill {
+            background: rgba(163,232,149,0.1);
+            color: var(--accent-a);
+            border: 1px solid rgba(163,232,149,0.25);
+        }
+        .break-card .pomo-status-pill {
+            background: rgba(255,158,187,0.1);
+            color: var(--accent-b);
+            border: 1px solid rgba(255,158,187,0.25);
+        }
+        .pomo-status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            display: inline-block; flex-shrink: 0;
+        }
+        .focus-card .pomo-status-dot { background: var(--accent-a); }
+        .break-card  .pomo-status-dot { background: var(--accent-b); }
+        .pomo-running .pomo-status-dot { animation: blink-dot 1.1s ease-in-out infinite; }
+        @keyframes blink-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 6px currentColor; }
+            50%       { opacity: 0.2; box-shadow: none; }
+        }
+
+        /* ── Card header label ── */
+        .pomo-card-header {
+            font-size: 12px; font-weight: 800;
+            letter-spacing: 1px; text-transform: uppercase;
+            margin-bottom: 16px;
+            display: flex; align-items: center;
+            justify-content: center; gap: 7px;
+            opacity: 0.7;
+        }
+        .focus-card .pomo-card-header { color: var(--accent-a); }
+        .break-card .pomo-card-header { color: var(--accent-b); }
+        .pomo-running .pomo-card-header { opacity: 1; }
+
+        /* ── Big timer clock face ── */
+        .pomo-clock-face {
+            position: relative;
+            width: clamp(110px, 28vw, 140px); height: clamp(110px, 28vw, 140px);
+            margin: 0 auto 12px;
+        }
+        .pomo-clock-svg {
+            transform: rotate(-90deg);
+            width: 100%; height: 100%;
+        }
+        .pomo-clock-track {
+            fill: none; stroke-width: 5;
+            stroke: rgba(255,255,255,0.06);
+        }
+        .pomo-clock-progress {
+            fill: none; stroke-width: 5;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s linear, stroke 0.4s ease;
+        }
+        .focus-card .pomo-clock-progress { stroke: var(--accent-a); }
+        .break-card  .pomo-clock-progress { stroke: var(--accent-b); }
+
+        .pomo-clock-inner {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        .pomo-timer-display {
+            font-size: clamp(26px, 7vw, 36px); font-weight: 900;
+            font-family: 'Cairo', monospace; line-height: 1;
+            transition: color 0.4s, text-shadow 0.4s;
+            letter-spacing: -1px;
+        }
+        .focus-card .pomo-timer-display {
+            color: var(--accent-a);
+            text-shadow: 0 0 20px rgba(163,232,149,0.4);
+        }
+        .break-card .pomo-timer-display {
+            color: var(--accent-b);
+            text-shadow: 0 0 20px rgba(255,158,187,0.4);
+        }
+        .pomo-mascot {
+            font-size: 18px;
+            animation: floatChar 3s ease-in-out infinite;
+        }
+
+        /* ── Minutes input ── */
+        .pomo-min-row {
+            display: flex; align-items: center; justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px; margin: 14px 0 16px;
+        }
+        .pomo-min-row label {
+            font-size: 11px; color: var(--text-muted); font-weight: 700;
+        }
+        .pomo-min-row input {
+            width: 52px; text-align: center;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 10px; padding: 6px 4px;
+            font-size: 14px; font-weight: 800; color: #fff;
+            font-family: 'Cairo'; transition: border-color 0.2s;
+        }
+        .focus-card .pomo-min-row input:focus { border-color: var(--accent-a) !important; outline: none; }
+        .break-card  .pomo-min-row input:focus { border-color: var(--accent-b) !important; outline: none; }
+        .pomo-apply-btn {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 9px; padding: 6px 10px;
+            font-size: 12px; color: var(--text-muted);
+            cursor: pointer; font-weight: 700;
+            transition: all 0.2s;
+        }
+        .pomo-apply-btn:hover { color: #fff; background: rgba(255,255,255,0.12); }
+
+        /* ── Action buttons ── */
+        .pomo-btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .pomo-btn {
+            border: none; border-radius: 22px;
+            font-family: 'Cairo'; font-weight: 800;
+            font-size: 13px; cursor: pointer;
+            padding: 12px 24px;
+            min-height: 44px;
+            transition: all 0.25s ease;
+            letter-spacing: 0.3px;
+        }
+        .pomo-btn:active { transform: scale(0.96); }
+
+        .focus-card .pomo-btn-primary {
+            background: var(--accent-a); color: #101223;
+            box-shadow: 0 4px 15px rgba(163,232,149,0.25);
+        }
+        .focus-card .pomo-btn-primary:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 6px 20px rgba(163,232,149,0.4);
+            transform: translateY(-1px);
+        }
+        .break-card .pomo-btn-primary {
+            background: var(--accent-b); color: #101223;
+            box-shadow: 0 4px 15px rgba(255,158,187,0.25);
+        }
+        .break-card .pomo-btn-primary:hover {
+            filter: brightness(1.08);
+            box-shadow: 0 6px 20px rgba(255,158,187,0.4);
+            transform: translateY(-1px);
+        }
+        .pomo-btn-ghost {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: var(--text-muted);
+            padding: 10px 16px;
+        }
+        .pomo-btn-ghost:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        /* ── Timer Settings: sound profile card (relocated inside Pomodoro) ── */
+        .pomo-sound-settings {
+            background: rgba(255,255,255,0.025);
+            border: 1.5px solid rgba(255,255,255,0.07);
+            border-radius: 22px;
+            padding: 18px 22px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(14px);
+            transition: border-color 0.3s ease, background 0.3s ease;
+        }
+        .pomo-sound-settings:hover {
+            border-color: rgba(163,232,149,0.25);
+            background: rgba(255,255,255,0.04);
+        }
+        .pomo-sound-settings-header {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; font-weight: 800;
+            letter-spacing: 0.6px; text-transform: uppercase;
+            color: var(--accent-a);
+            opacity: 0.85;
+            margin-bottom: 14px;
+        }
+        .pomo-sound-settings-icon { font-size: 15px; }
+        .pomo-sound-settings-row {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 14px; flex-wrap: wrap;
+        }
+        .pomo-sound-settings-label {
+            font-size: 13px; font-weight: 700; color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .pomo-sound-select {
+            flex: 1; min-width: 160px; max-width: 260px;
+            background: rgba(0,0,0,0.3);
+            color: var(--text-main);
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 12px;
+            padding: 9px 12px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 13px; font-weight: 700;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+        .pomo-sound-select:focus { border-color: var(--accent-a) !important; outline: none; }
+        .pomo-sound-select:hover { background: rgba(0,0,0,0.4); }
+
+        /* ── Sessions counter strip ── */
+        .pomo-sessions-row {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px; margin-bottom: 20px;
+        }
+        .pomo-sessions-card {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 18px; padding: 16px 20px;
+            display: flex; align-items: center; gap: 14px;
+            min-width: 0;
+            transition: 0.3s;
+        }
+        .pomo-sessions-card:hover { background: rgba(255,255,255,0.05); }
+        .pomo-sessions-icon {
+            font-size: 28px; flex-shrink: 0;
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.1));
+        }
+        .pomo-sessions-val {
+            font-size: 26px; font-weight: 900; line-height: 1;
+        }
+        .pomo-sessions-card.focus-sessions .pomo-sessions-val { color: var(--accent-a); }
+        .pomo-sessions-card.break-sessions  .pomo-sessions-val { color: var(--accent-b); }
+        .pomo-sessions-lbl {
+            font-size: 11px; color: var(--text-muted);
+            font-weight: 700; margin-top: 2px;
+        }
+
+        /* ستايل صورة الشخصية البكسل */
+        .pixel-sprite {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 0 22px var(--pixel-pink)) drop-shadow(0 0 8px var(--pixel-lavender));
+            animation: floatAnime 3s ease-in-out infinite;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.03);
+            padding: 8px;
+            border: 1.5px solid rgba(255, 158, 187, 0.25);
+        }
+
+        /* حركة الطفو المستمرة */
+        @keyframes floatAnime {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* شارة اسم الشخصية (تم إخفاءها حسب الطلب) */
+        .char-name-badge {
+            display: none;
+        }
+
+
+        /* ─── Cursor follower (Support) ─── */
+        .cursor-follower {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 80px;
+            height: 80px;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.05s ease-out;
+            image-rendering: pixelated;
+            display: none;
+        }
+
+        /* ── Character Preview (Glassmorphism) ── */
+        .preview-area {
+            margin-top: auto; /* push to bottom inside sidebar */
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .preview-card {
+            background: rgba(255,255,255,0.04);
+            border: 1.5px solid rgba(255, 158, 187, 0.2);
+            border-radius: 20px;
+            padding: 18px 12px;
+            width: 145px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(195, 177, 225, 0.08);
+        }
+        .preview-card:hover {
+            border-color: rgba(255, 158, 187, 0.45);
+            box-shadow: 0 0 28px rgba(255, 158, 187, 0.18);
+            transform: translateY(-2px);
+        }
+
+        #previewImage {
+            width: clamp(70px, 18vw, 115px);
+            height: clamp(70px, 18vw, 115px);
+            max-width: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            opacity: 0;
+            transition: opacity 0.6s ease-in-out;
+            animation: gentleFloat 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 10px var(--pixel-pink));
+        }
+
+        /* عشان دايماً يبقى مافيش ظلال/تداخل يخبّص على النص */
+        #previewName { opacity: 1 !important; visibility: visible !important; }
+
+
+
+        #previewImage.visible {
+            opacity: 1;
+        }
+
+        @keyframes gentleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .preview-label {
+            font-size: 10px;
+            color: var(--pixel-mint);
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        /* ─────────────────────────────────────────────────────
+           GLOBAL MEDIA / OVERFLOW SAFETY
+        ───────────────────────────────────────────────────── */
+        img, svg, canvas, video { max-width: 100%; height: auto; }
+        .pomo-clock-svg { height: 100%; width: 100%; }
+        #weeklyChart, #tasksPieChart, #pomodoroBarChart { max-width: 100%; }
+        .chart-box { max-width: 100%; overflow-x: auto; }
+        button, input, select, textarea { min-width: 0; }
+
+        /* Long text / urls never break layout */
+        h2, h3, h4, p, span, a, label { overflow-wrap: anywhere; }
+
+        /* ─────────────────────────────────────────────────────
+           RESPONSIVE BREAKPOINTS (mobile-first overrides)
+        ───────────────────────────────────────────────────── */
+
+        /* ── Tablet landscape / small laptop (≤1024px): tighten spacing ── */
+        @media (max-width: 1024px) {
+            .sidebar { width: 220px; }
+            .main-content { padding: clamp(16px, 3vw, 32px); }
+        }
+
+        /* ── Mobile (≤768px): collapse sidebar into a fully off-canvas drawer ──
+           IMPORTANT: the sidebar is pinned with `inset-inline-end: 0`, which is a
+           *logical* (direction-aware) property:
+             - in RTL (Arabic)  → inset-inline-end resolves to the LEFT edge
+             - in LTR (English) → inset-inline-end resolves to the RIGHT edge
+           The closed-state transform must push the panel further away on that
+           SAME physical side, otherwise it only slides toward the center and a
+           sliver of it stays inside the viewport (the "still visible / takes
+           space when closed" bug). So: RTL hides to the left (negative X),
+           LTR hides to the right (positive X) — i.e. the previous rule had the
+           two directions swapped. */
+        @media (max-width: 768px) {
+            html, body { overflow: hidden; height: 100vh; }
+
+            .hamburger-btn { display: flex; }
+
+            .app-shell { overflow: hidden; }
+
+            .sidebar {
+                position: fixed;
+                inset-block: 0;
+                inset-inline-end: 0;
+                height: 100vh;
+                width: min(82vw, 300px);
+                max-width: 300px;
+                z-index: 1000;
+                /* Default document dir is RTL (Arabic) → panel sits on the
+                   LEFT (inset-inline-end:0 in RTL = left:0). Hide it by
+                   sliding further LEFT, fully out of the viewport. */
+                transform: translateX(-100%);
+                box-shadow: 0 0 40px rgba(0,0,0,0.45);
+                will-change: transform;
+            }
+            /* LTR (English) → panel sits on the RIGHT (inset-inline-end:0 in
+               LTR = right:0). Hide it by sliding further RIGHT instead. */
+            html[dir="ltr"] .sidebar { transform: translateX(100%); }
+
+            /* NOTE on specificity: `html[dir="ltr"] .sidebar` has higher
+               specificity (1 element + 2 class/attr) than a bare
+               `.sidebar.open` (2 classes), so a plain `.sidebar.open` rule
+               would silently lose to the line above and the panel would
+               never actually slide into view in English. Both open rules
+               below are written with the same `html[dir=...] .sidebar.open`
+               shape so they reliably win over their matching closed-state
+               rule. */
+            html[dir="rtl"] .sidebar.open,
+            html:not([dir="ltr"]) .sidebar.open {
+                transform: translateX(0);
+            }
+            html[dir="ltr"] .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay.show {
+                display: block;
+                opacity: 1;
+            }
+
+            /* Closed sidebar must reserve zero layout width and never be
+               reachable by keyboard/tab focus or a screen reader. */
+            .sidebar:not(.open) {
+                visibility: hidden;
+                pointer-events: none;
+                transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.4s;
+            }
+            .sidebar.open {
+                visibility: visible;
+                pointer-events: auto;
+                transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0s;
+            }
+
+            .main-content {
+                width: 100%;
+                max-width: 100%;
+                padding-top: 64px;
+            }
+        }
+
+        /* ── Phones (≤640px) ── */
+        @media (max-width: 640px) {
+            .pomo-dual-grid { grid-template-columns: 1fr; }
+            .grid-stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .support-card { padding: 28px 16px; }
+            .profile-container { padding: 18px; }
+            .timeline-item { padding: 14px 16px; }
+            .pill-btn { padding: 10px 20px; }
+        }
+
+        /* ── Very small phones (≤375px) ── */
+        @media (max-width: 375px) {
+            .grid-stats { grid-template-columns: repeat(2, 1fr); }
+            .grid-stats .card-stat:last-child { grid-column: span 2; }
+            .pomo-sessions-row { grid-template-columns: 1fr; }
+            .pomo-clock-face { width: 120px; height: 120px; }
+        }
+
+        /* ── Extra-small phones (≤320px) ── */
+        @media (max-width: 320px) {
+            .main-content { padding: 12px; padding-top: 60px; }
+            .pill-btn { padding: 9px 14px; font-size: 13px; }
+            .timer-mode-banner, .timer-display { font-size: 90%; }
+        }
+
+        /* ── Large desktop (≥1440px): give the layout room to breathe ── */
+        @media (min-width: 1440px) {
+            .sidebar { width: 290px; }
+            .page-panel { max-width: 820px; }
+        }
+
+        /* ── Ultra-wide desktop (≥1920px) ── */
+        @media (min-width: 1920px) {
+            .page-panel { max-width: 900px; }
+        }
+
+        /* ── Landscape phones (short height) ── */
+        @media (max-height: 480px) and (orientation: landscape) {
+            .sidebar { padding-top: 16px; }
+            .main-content { padding-top: 16px; }
+            .timer-mode-banner { margin-bottom: 8px; }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           ONBOARDING SCREEN
+        ═══════════════════════════════════════════════════════ */
+        .onboarding-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background: var(--bg-gradient);
+            padding: 24px;
+            transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.4,0,0.2,1);
+        }
+        .onboarding-screen.onb-exiting {
+            opacity: 0;
+            transform: scale(1.04);
+            pointer-events: none;
+        }
+
+        .onb-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.35;
+            animation: onbDrift 14s ease-in-out infinite;
+            pointer-events: none;
+        }
+        .onb-orb-a { width: 280px; height: 280px; background: var(--accent-a); top: -60px; inset-inline-start: -60px; animation-delay: 0s; }
+        .onb-orb-b { width: 320px; height: 320px; background: var(--accent-b); bottom: -90px; inset-inline-end: -60px; animation-delay: -4s; }
+        .onb-orb-c { width: 220px; height: 220px; background: var(--pixel-lavender); top: 40%; inset-inline-start: 60%; animation-delay: -8s; }
+        @keyframes onbDrift {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50%      { transform: translate(20px, -25px) scale(1.08); }
+        }
+
+        .onb-progress {
+            position: absolute;
+            top: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 2;
+        }
+        .onb-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+        .onb-dot.active { width: 26px; background: var(--accent-a); box-shadow: 0 0 10px var(--accent-a); }
+
+        .onb-stage {
+            position: relative;
+            width: 100%;
+            max-width: 440px;
+            z-index: 2;
+            min-height: 420px;
+        }
+
+        .onb-step {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(40px);
+            transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1), visibility 0.45s;
+        }
+        html[dir="ltr"] .onb-step { transform: translateX(-40px); }
+        .onb-step.active {
+            position: relative;
+            width: min(100%, 440px);
+            max-width: 440px;
+            padding: 0 18px;
+            margin: 0 auto;
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+        .onb-step.onb-leave-back {
+            transform: translateX(-40px);
+        }
+        html[dir="ltr"] .onb-step.onb-leave-back { transform: translateX(40px); }
+
+        .onb-logo-mark {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 900; font-size: 18px; color: var(--accent-a);
+            text-shadow: 0 0 14px var(--accent-a);
+            margin-bottom: 28px;
+            animation: onbPopIn 0.6s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        .onb-title {
+            font-size: clamp(22px, 5vw, 30px);
+            font-weight: 900;
+            margin: 0 0 10px 0;
+            background: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: onbPopIn 0.6s 0.05s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .onb-sub {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 36px 0;
+            animation: onbPopIn 0.6s 0.1s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        @keyframes onbPopIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .onb-choice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            width: 100%;
+            animation: onbPopIn 0.6s 0.16s cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        .onb-choice-card {
+            position: relative;
+            background: var(--glass-bg);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 30px 16px 22px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-main);
+            font-family: 'Cairo', sans-serif;
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1),
+                        border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+        }
+        .onb-choice-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            border-color: var(--accent-a);
+        }
+        .onb-choice-card:active { transform: translateY(-1px) scale(0.98); }
+
+        .onb-choice-glow {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(163,232,149,0.18), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .onb-choice-card:hover .onb-choice-glow,
+        .onb-choice-card.selected .onb-choice-glow { opacity: 1; }
+
+        .onb-choice-icon {
+            font-size: 42px;
+            line-height: 1;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .onb-choice-card:hover .onb-choice-icon { transform: scale(1.12) rotate(-4deg); }
+
+        .onb-choice-label { font-weight: 800; font-size: 15px; z-index: 1; }
+
+        .onb-choice-check {
+            position: absolute;
+            top: 10px; inset-inline-end: 10px;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: var(--accent-a);
+            color: #101223;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px;
+            opacity: 0;
+            transform: scale(0.4);
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        .onb-choice-card.selected {
+            border-color: var(--accent-a);
+            background: var(--glass-active);
+            box-shadow: 0 0 0 1px rgba(163,232,149,0.2), 0 12px 30px rgba(163,232,149,0.18);
+            transform: translateY(-4px) scale(1.02);
+        }
+        .onb-choice-card.selected .onb-choice-check { opacity: 1; transform: scale(1); }
+
+        .onb-back-btn {
+            margin-top: 26px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 14px;
+            border-radius: 12px;
+            transition: color 0.2s ease, background 0.2s ease;
+        }
+        .onb-back-btn:hover { color: var(--accent-a); background: rgba(255,255,255,0.04); }
+        html[dir="ltr"] .onb-back-btn i { transform: scaleX(-1); }
+
+        @media (max-width: 420px) {
+            .onb-choice-card { padding: 24px 12px 18px; }
+            .onb-choice-icon { font-size: 36px; }
+        }
+
+    </style>
+</head>
+<script>
+if ("serviceWorker" in navigator) {
+ navigator.serviceWorker.register("/static/service-worker.js");
+}
+</script>
+<body>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         ONBOARDING — first-launch welcome experience
+         Step 1: choose style (male / female)
+         Step 2: choose language (Arabic / English)
+    ═══════════════════════════════════════════════════════ -->
+    <div class="onboarding-screen" id="onboardingScreen">
+        <div class="onb-orb onb-orb-a"></div>
+        <div class="onb-orb onb-orb-b"></div>
+        <div class="onb-orb onb-orb-c"></div>
+        
+
+        <div class="onb-step" id="onbStepWelcomeBack">
+
+        <div class="onb-logo-mark">
+          ✨ TaskFlow
+        </div>
+
+        <h1 class="onb-title">
+          Welcome back ✨
+        </h1>
+
+        <p class="onb-sub">
+          Your saved profile is ready
+        </p>
+
+
+        <div class="glass-card">
+
+        <div id="savedAvatarPreview"
+             class="onb-choice-icon">
+            🌸
+        </div>
+
+
+        <h3 id="savedProfileStyle">
+            Female Style
+        </h3>
+
+
+        <p id="savedLanguagePreview">
+            العربية
+        </p>
+
+         </div>
+
+
+    <button class="pill-btn primary-pill"
+        onclick="continueSavedAccount()">
+
+        Continue with this account
+
+    </button>
+
+
+    <button class="pill-btn"
+        onclick="changeSavedPreferences()">
+
+        Change preferences
+
+    </button>
+
+
+</div>
+
+        <div class="onb-progress">
+            <span class="onb-dot active" id="onbDot1"></span>
+            <span class="onb-dot" id="onbDot2"></span>
+        </div>
+
+        <div class="onb-stage" id="onbStage">
+
+            <!-- ── Step 1: Gender / style ── -->
+            <section class="onb-step active" id="onbStepGender">
+                <div class="onb-logo-mark">
+                    <i class="nes-icon heart is-small"></i>
+                    <span>TaskFlow</span>
+                </div>
+                <h1 class="onb-title" id="onbGenderTitle">Tell us more about your style✨</h1>
+                <p class="onb-sub" id="onbGenderSub">We’ll customize the app’s design and every word in it just for you</p>
+
+                <div class="onb-choice-grid">
+                    <button type="button" class="onb-choice-card" id="onbChoiceMale" onclick="selectGender('male')">
+                        <span class="onb-choice-glow"></span>
+                        <span class="onb-choice-icon">🧑</span>
+                        <span class="onb-choice-label" id="onbMaleLabel">Male</span>
+                        <span class="onb-choice-check"><i class="fa-solid fa-check"></i></span>
+                    </button>
+                    <button type="button" class="onb-choice-card" id="onbChoiceFemale" onclick="selectGender('female')">
+                        <span class="onb-choice-glow"></span>
+                        <span class="onb-choice-icon">👩</span>
+                        <span class="onb-choice-label" id="onbFemaleLabel">Female</span>
+                        <span class="onb-choice-check"><i class="fa-solid fa-check"></i></span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- ── Step 2: Language ── -->
+            <section class="onb-step" id="onbStepLang">
+                <div class="onb-logo-mark">
+                    <i class="fa-solid fa-globe"></i>
+                    <span id="onbLangLogoText">Language</span>
+                </div>
+                <h1 class="onb-title" id="onbLangTitle">Choose your preferred language</h1>
+                <p class="onb-sub" id="onbLangSub">You can change this at any time in the settings</p>
+
+                <div class="onb-choice-grid">
+                    <button type="button" class="onb-choice-card" id="onbChoiceAr" onclick="selectOnbLang('ar')">
+                        <span class="onb-choice-glow"></span>
+                        <span class="onb-choice-icon">🗣️</span>
+                        <span class="onb-choice-label">العربية</span>
+                        <span class="onb-choice-check"><i class="fa-solid fa-check"></i></span>
+                    </button>
+                    <button type="button" class="onb-choice-card" id="onbChoiceEn" onclick="selectOnbLang('en')">
+                        <span class="onb-choice-glow"></span>
+                        <span class="onb-choice-icon">🌍</span>
+                        <span class="onb-choice-label">English</span>
+                        <span class="onb-choice-check"><i class="fa-solid fa-check"></i></span>
+                    </button>
+                </div>
+
+                <button type="button" class="onb-back-btn" id="onbBackBtn" onclick="onbGoToStep('gender')">
+                    <i class="fa-solid fa-arrow-right-long"></i> <span id="onbBackLabel">Back</span>
+                </button>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         APP SHELL — hidden until onboarding completes
+    ═══════════════════════════════════════════════════════ -->
+    <div class="app-shell main-dashboard" id="appShell">
+
+    <!-- ═══ Mobile menu toggle ═══ -->
+    <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menu">
+        <i class="fa-solid fa-bars" id="hamburgerIcon"></i>
+    </button>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <!-- ═══ Change Style Flow — Step 1: soft-reset question ═══ -->
+    <div class="style-modal-overlay" id="resetConfirmModal">
+        <div class="style-modal-box">
+            <div class="style-modal-title" data-i18n="change_style_step1_title">🎭 Change Style</div>
+            <div class="style-modal-sub" id="resetConfirmSub" data-i18n="reset_progress_prompt">
+                Do you want to soft-reset your achievements and statistics, or keep your current stats?
+            </div>
+            <div class="style-modal-btn-row">
+                <button type="button" class="style-modal-btn danger" onclick="handleResetChoice(true)" data-i18n="reset_progress_yes">Reset progress</button>
+                <button type="button" class="style-modal-btn primary" onclick="handleResetChoice(false)" data-i18n="reset_progress_no">Keep my stats</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Change Style Flow — Step 2: gender/aesthetic choice ═══ -->
+    <div class="style-modal-overlay" id="genderChoiceModal">
+        <div class="style-modal-box">
+            <div class="style-modal-title" data-i18n="change_style_step2_title">✨ Pick your style</div>
+            <div class="style-choice-row">
+                <div class="style-choice-card" onclick="handleGenderChoice('female')">
+                    <span class="style-choice-emoji">🌸</span>
+                    <span class="style-choice-label" data-i18n="style_choice_girl">Girl Style</span>
+                </div>
+                <div class="style-choice-card" onclick="handleGenderChoice('male')">
+                    <span class="style-choice-emoji">⚡</span>
+                    <span class="style-choice-label" data-i18n="style_choice_boy">Boy Style</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Sidebar ═══ -->
+    <div class="sidebar" id="appSidebar">
+        <div class="logo-area">
+            <i class="nes-icon heart is-small"></i>
+            <span data-i18n="logo">تاسك فلو</span>
+        </div>
+
+        <!-- Language Toggle -->
+        <div style="margin-bottom: 20px; padding: 0 5px;">
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <div style="flex:1; display:flex; background: rgba(0,0,0,0.2); border: var(--glass-border); border-radius: 12px; padding: 2px;">
+                    <button onclick="changeLanguage('ar')" id="lang-ar" style="flex:1; background:transparent; border:none; color:#fff; font-family:'Cairo'; font-size:12px; font-weight:bold; padding:6px; cursor:pointer; border-radius:10px;">العربية</button>
+                    <button onclick="changeLanguage('en')" id="lang-en" style="flex:1; background:transparent; border:none; color:#fff; font-family:'Cairo'; font-size:12px; font-weight:bold; padding:6px; cursor:pointer; border-radius:10px;">English</button>
+                </div>
+                <button class="sound-toggle" id="soundToggleBtn" onclick="toggleSound()" title="Sound">🔔</button>
+            </div>
+        </div>
+
+        <button class="menu-btn active" onclick="switchPage('profile-page', this)">
+            <i class="fa-regular fa-user"></i> <span data-i18n="menu_dashboard">لوحة التحكم</span>
+        </button>
+        <button class="menu-btn" onclick="switchPage('tasks-page', this)">
+            <i class="fa-solid fa-list-check"></i> <span data-i18n="menu_tasks">مفكرة المهام</span>
+        </button>
+        <button class="menu-btn" onclick="switchPage('pomodoro-page', this)">
+            <i class="fa-regular fa-clock"></i> <span data-i18n="menu_pomodoro">مؤقت البومودورو</span>
+        </button>
+        <button class="menu-btn" onclick="switchPage('support-page', this)">
+            <i class="fa-regular fa-envelope"></i> <span data-i18n="menu_support">الاقتراحات والدعم</span>
+        </button>
+
+        <!-- تبقى الصورة فقط بدون كلام (بدون preview card) -->
+        <div id="characterPreviewArea" class="preview-area" style="padding: 0;">
+            <img id="previewImage" src="" alt="Selected Character" class="hidden" style="width: 110px; height: 110px;" />
+        </div>
+    </div>
+
+    <!-- ═══ Main Content ═══ -->
+    <div class="main-content">
+
+        <!-- ── Dashboard ── -->
+        <div id="profile-page" class="page-panel active">
+            <h2><span data-i18n="menu_dashboard">لوحة التحكم</span> <span class="title-accent">✨</span></h2>
+
+            <div class="profile-container">
+                <div class="avatar-wrapper">
+                    <button class="remove-avatar-btn" id="removeAvatarBtn" onclick="removeAvatar(event)"><i class="fa-solid fa-xmark"></i></button>
+                    <div class="avatar-pixel" onclick="document.getElementById('avatarInput').click();">
+                        <img id="profileImage" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+                        <div id="avatarPlaceholder" style="font-size:30px;">🌸</div>
+                    </div>
+                </div>
+                <input type="file" id="avatarInput" accept="image/*" style="display:none;" onchange="previewAndSaveAvatar(this)">
+
+                <div class="profile-info">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <h3 id="profileName">ملكة الإنجاز الذكي ✨</h3>
+                        <button onclick="editProfileName()" style="background:none;border:none;color:var(--accent-a);cursor:pointer;font-size:13px;"><i class="fa-regular fa-pen-to-square"></i></button>
+                        <button id="resetNameBtn" onclick="resetProfileName()" style="background:none;border:none;color:#ff5f56;cursor:pointer;font-size:13px;display:none;"><i class="fa-solid fa-rotate-left"></i></button>
+                    </div>
+                    <div class="streak-badge" id="streakBadgeContainer">
+                        <span id="streakEmoji">💤</span>
+                        <span id="streakDays">0 يوم</span>
+                    </div>
+                    <button id="changeStyleBtn" onclick="promptChangeStyle()"
+                            style="margin-top:8px;background:var(--glass-bg);border:var(--glass-border);color:var(--text-main);border-radius:12px;padding:6px 14px;font-family:'Cairo';font-size:12px;font-weight:bold;cursor:pointer;"
+                            data-i18n="change_style_btn">🎭 تغيير الستايل</button>
+                </div>
+            </div>
+
+            <div class="grid-stats controls-row">
+                <div class="card-stat">
+                    <span class="card-stat-val accent-a" id="totalFocusStats">0 د</span>
+                    <span class="card-stat-lbl" data-i18n="focus_time">وقت التركيز</span>
+                </div>
+                <div class="card-stat">
+                    <span class="card-stat-val accent-b" id="totalBreakStats">0 د</span>
+                    <span class="card-stat-lbl" data-i18n="break_time">وقت الراحة</span>
+                </div>
+                <div class="card-stat">
+                    <span class="card-stat-val" id="totalDoneStats" style="color: var(--pixel-lavender);">0</span>
+                    <span class="card-stat-lbl" data-i18n="completed_tasks">المهام المكتملة</span>
+                </div>
+            </div>
+
+            <div class="grid-stats controls-row">
+                <div class="card-stat">
+                    <span class="card-stat-val accent-a" id="playerLevel">Lvl 1</span>
+                    <span class="card-stat-lbl" data-i18n="level_label">المستوى</span>
+                </div>
+                <div class="card-stat">
+                    <span class="card-stat-val accent-b" id="playerXP">0/100</span>
+                    <span class="card-stat-lbl" data-i18n="xp_label">نقاط الخبرة</span>
+                </div>
+                <div class="card-stat">
+                    <span class="card-stat-val" id="achievementCount" style="color: var(--pixel-lavender);">0</span>
+                    <span class="card-stat-lbl" data-i18n="achievements_label">الإنجازات</span>
+                </div>
+            </div>
+
+            <!-- Theme Selector -->
+            <div class="glass-card" style="margin-top:15px;padding:15px 20px;">
+                <label style="display:block;font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:8px;" data-i18n="theme_title">🎨 اختاري ستايل الألوان المفضل ليكي:</label>
+                <div style="display:flex;background:rgba(0,0,0,0.2);border:var(--glass-border);border-radius:14px;padding:4px;">
+                    <select id="themeSelector" onchange="applyTheme(this.value)" style="width:100%;color:#fff;background:transparent;font-family:'Cairo';font-weight:bold;cursor:pointer;">
+                        <option value="pistachio-green" data-i18n="th_pistachio_green">بستيج و اخضر 🍃</option>
+                        <option value="pistachio-gold"  data-i18n="th_pistachio_gold">بستيج و جولد ✨</option>
+                        <option value="neon-glow"       data-i18n="th_neon_glow">فسفوري اخضر و فسفوري اصفر ⚡</option>
+                        <option value="mauve-silver"    data-i18n="th_mauve_silver">موف و سيلفر 🔮</option>
+                        <option value="pink-fuchsia"    data-i18n="th_pink_fuchsia">بينك و فوشيا 🌸</option>
+                        <option value="blue-silver"     data-i18n="th_blue_silver">ازرق و سيلفر 💎</option>
+                        <option value="grey-silver"     data-i18n="th_grey_silver">رمادي و سيلفر 🌪️</option>
+                        <option value="black-gold"      data-i18n="th_black_gold">اسود و جولد 👑</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Achievements -->
+            <div class="glass-card" style="margin-top:15px;padding:15px 20px;">
+                <h4 style="font-size:13px;font-weight:700;color:var(--accent-a);margin-bottom:12px;" data-i18n="achievements_title">🏆 الإنجازات</h4>
+                <div id="achievementsContainer" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+                    <div class="achievement-badge locked" data-ach="first_task">
+                        <span style="font-size:20px;">🎯</span>
+                        <span style="font-size:11px;color:var(--text-muted);" data-i18n="ach_first_task">أول مهمة</span>
+                    </div>
+                    <div class="achievement-badge locked" data-ach="7_day_streak">
+                        <span style="font-size:20px;">🔥</span>
+                        <span style="font-size:11px;color:var(--text-muted);" data-i18n="ach_7_day_streak">7 أيام متتالية</span>
+                    </div>
+                    <div class="achievement-badge locked" data-ach="100_tasks_done">
+                        <span style="font-size:20px;">💯</span>
+                        <span style="font-size:11px;color:var(--text-muted);" data-i18n="ach_100_tasks">100 مهمة</span>
+                    </div>
+                    <div class="achievement-badge locked" data-ach="1000_focus_minutes">
+                        <span style="font-size:20px;">⏰</span>
+                        <span style="font-size:11px;color:var(--text-muted);" data-i18n="ach_1000_minutes">1000 دقيقة</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size:15px;margin-bottom:12px;color:var(--accent-b);font-weight:700;" data-i18n="weekly_chart_title">جراف خطي لمعدل الإنتاجية الأسبوعي</h3>
+            <div class="chart-box">
+                <canvas id="weeklyChart" style="max-height:160px;"></canvas>
+            </div>
+        </div>
+
+        <!-- ── Tasks Page ── -->
+        <div id="tasks-page" class="page-panel">
+            <div class="tasks-header">
+                <h2><span data-i18n="menu_tasks">مفكرة المهام</span> <span class="title-accent">📝</span></h2>
+                <span style="font-size:22px;opacity:0.6;" title="pixel art">🌺</span>
+            </div>
+
+            <!-- Inline task input — no modal -->
+            <div class="input-group">
+                <input type="text" id="taskInput"
+                       placeholder="ما هي خطتكِ التالية اليوم؟..."
+                       autocomplete="off"
+                       onkeydown="if(event.key==='Enter') addTask()">
+                <button class="add-btn" onclick="addTask()"><i class="fa-solid fa-plus"></i></button>
+            </div>
+
+            <ul id="taskList" class="timeline-list"></ul>
+
+            <div class="chart-box" style="max-width:320px;margin:25px auto 0 auto;">
+                <h4 style="text-align:center;margin:0 0 15px 0;font-size:13px;color:var(--accent-a);" data-i18n="pie_chart_title">نسبة اكتمال المهام اليوم</h4>
+                <canvas id="tasksPieChart" style="max-height:150px;"></canvas>
+            </div>
+        </div>
+
+        <!-- ── Pomodoro Page ── -->
+        <div id="pomodoro-page" class="page-panel">
+            <h2><span data-i18n="menu_pomodoro">مؤقت البومودورو</span> <span class="title-accent">⏱️</span></h2>
+            <p class="pomo-subtitle" data-i18n="pomo_subtitle">ركزي وارتاحي — كل تايمر مستقل بذاته ✨</p>
+
+            <!-- ── DUAL TIMER GRID ── -->
+            <div class="pomo-dual-grid">
+
+                <!-- ══ FOCUS CARD ══ -->
+                <div class="pomo-single-card focus-card" id="focusCard">
+                    <div class="pomo-glow-overlay"></div>
+
+                    <!-- Status pill -->
+                    <div class="pomo-status-pill" id="focusStatusPill">
+                        <span class="pomo-status-dot"></span>
+                        <span id="focusStatusText" data-i18n="pomo_status_ready">جاهزة</span>
+                    </div>
+
+                    <!-- Label -->
+                    <div class="pomo-card-header">
+                        <span>🎯</span>
+                        <span data-i18n="pomo_focus_title">وقت التركيز</span>
+                    </div>
+
+                    <!-- Circular clock face with SVG ring -->
+                    <div class="pomo-clock-face">
+                        <svg class="pomo-clock-svg" viewBox="0 0 140 140">
+                            <circle class="pomo-clock-track"    cx="70" cy="70" r="60"/>
+                            <circle class="pomo-clock-progress" cx="70" cy="70" r="60"
+                                    id="focusProgressRing"
+                                    stroke-dasharray="376.99"
+                                    stroke-dashoffset="0"/>
+                        </svg>
+                        <div class="pomo-clock-inner">
+                            <div class="pomo-timer-display" id="focusTimerDisplay">25:00</div>
+                            <div class="pomo-mascot" id="focusMascot">🌸</div>
+                        </div>
+                    </div>
+
+                    <!-- Minutes input -->
+                    <div class="pomo-min-row">
+                        <label data-i18n="pomo_minutes_label">دقائق:</label>
+                        <input type="number" id="customWorkMinutes" value="25" min="1" max="120">
+                        <button class="pomo-apply-btn" onclick="applyFocusTime()" data-i18n="edit_btn">✓</button>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="pomo-btn-row">
+                        <button class="pomo-btn pomo-btn-primary" id="focusStartBtn" onclick="toggleFocusTimer()" data-i18n="start_timer">ابدأ</button>
+                        <button class="pomo-btn pomo-btn-ghost"   onclick="resetFocusTimer()">↺</button>
+                    </div>
+                </div>
+
+                <!-- ══ BREAK CARD ══ -->
+                <div class="pomo-single-card break-card" id="breakCard">
+                    <div class="pomo-glow-overlay"></div>
+
+                    <div class="pomo-status-pill" id="breakStatusPill">
+                        <span class="pomo-status-dot"></span>
+                        <span id="breakStatusText" data-i18n="pomo_status_ready">جاهزة</span>
+                    </div>
+
+                    <div class="pomo-card-header">
+                        <span>☕</span>
+                        <span data-i18n="pomo_break_title">وقت الراحة</span>
+                    </div>
+
+                    <div class="pomo-clock-face">
+                        <svg class="pomo-clock-svg" viewBox="0 0 140 140">
+                            <circle class="pomo-clock-track"    cx="70" cy="70" r="60"/>
+                            <circle class="pomo-clock-progress" cx="70" cy="70" r="60"
+                                    id="breakProgressRing"
+                                    stroke-dasharray="376.99"
+                                    stroke-dashoffset="0"/>
+                        </svg>
+                        <div class="pomo-clock-inner">
+                            <div class="pomo-timer-display" id="breakTimerDisplay">05:00</div>
+                            <div class="pomo-mascot" id="breakMascot">🍵</div>
+                        </div>
+                    </div>
+
+                    <div class="pomo-min-row">
+                        <label data-i18n="pomo_minutes_label">دقائق:</label>
+                        <input type="number" id="customBreakMinutes" value="5" min="1" max="60">
+                        <button class="pomo-apply-btn" onclick="applyBreakTime()" data-i18n="edit_btn">✓</button>
+                    </div>
+
+                    <div class="pomo-btn-row">
+                        <button class="pomo-btn pomo-btn-primary" id="breakStartBtn" onclick="toggleBreakTimer()" data-i18n="start_timer">ابدأ</button>
+                        <button class="pomo-btn pomo-btn-ghost"   onclick="resetBreakTimer()">↺</button>
+                    </div>
+                </div>
+
+            </div><!-- /pomo-dual-grid -->
+
+            <!-- ── Timer Settings: Sound Profile (relocated from top nav) ── -->
+            <div class="pomo-sound-settings">
+                <div class="pomo-sound-settings-header">
+                    <span class="pomo-sound-settings-icon">⚙️</span>
+                    <span data-i18n="pomo_sound_settings_title">إعدادات صوت المؤقت</span>
+                </div>
+                <div class="pomo-sound-settings-row">
+                    <label for="soundProfileSelector" class="pomo-sound-settings-label" data-i18n="pomo_sound_settings_label">نغمة التنبيه</label>
+                    <select id="soundProfileSelector" class="pomo-sound-select" onchange="changeSoundProfile(this.value)">
+                        <option value="soft"   data-i18n="sound_profile_soft">🕊️ نعومة هادئة</option>
+                        <option value="gentle" data-i18n="sound_profile_gentle">🔔 لطيف (افتراضي)</option>
+                        <option value="high"   data-i18n="sound_profile_high">📢 تنبيه قوي</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Sessions counter -->
+            <div class="pomo-sessions-row">
+                <div class="pomo-sessions-card focus-sessions">
+                    <span class="pomo-sessions-icon">🎯</span>
+                    <div>
+                        <div class="pomo-sessions-val" id="focusSessionsCount">0</div>
+                        <div class="pomo-sessions-lbl" data-i18n="pomo_sessions_focus">جلسات تركيز مكتملة</div>
+                    </div>
+                </div>
+                <div class="pomo-sessions-card break-sessions">
+                    <span class="pomo-sessions-icon">☕</span>
+                    <div>
+                        <div class="pomo-sessions-val" id="breakSessionsCount">0</div>
+                        <div class="pomo-sessions-lbl" data-i18n="pomo_sessions_break">جلسات راحة مكتملة</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison chart -->
+            <div class="chart-box">
+                <h4 style="margin:0 0 15px 0;font-size:13px;color:var(--accent-b);font-weight:700;" data-i18n="compare_chart_title">مقارنة فترات التركيز مقابل الاستراحة</h4>
+                <canvas id="pomodoroBarChart" style="max-height:140px;"></canvas>
+            </div>
+        </div>
+
+        <!-- ── Support Page ── -->
+        <div id="support-page" class="page-panel">
+            <h2 data-i18n="menu_support">صندوق الاقتراحات والدعم</h2>
+            <div class="glass-card support-card">
+                
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 25px;">
+                    <!-- Character (mouse hover/support) removed per request -->
+                </div>
+                <h3 data-i18n="support_heading">صندوق الأفكار وتطوير الميزات ✨</h3>
+                <p data-i18n="support_text">المفكرة دي معمولة عشانكِ! المكان هنا مخصص بالكامل لاستقبال أفكاركِ الإبداعية، اقتراحات لتطوير الواجهة، أو طلب ثيمات مخصصة وملصقات بكسل جديدة حابة تشوفيها في التحديثات الجاية.</p>
+                <a href="https://www.instagram.com/____________joo____?igsh=MTAzenBmeHIxazRncQ==" target="_blank" class="pill-btn primary-pill" style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px;">
+                    <i class="fa-brands fa-instagram"></i> <span data-i18n="support_btn">ارسل فكرتك ع الانستا  </span>
+                </a>
+            </div>
+        </div>
+
+    </div><!-- /main-content -->
+
+    <!-- Cursor follower (Support) -->
+    <img id="cursorFollower" class="cursor-follower" src="" alt="Follower">
+
+    </div><!-- /app-shell -->
+
+    <!-- ═══ JavaScript ═══ -->
+    <script>
+    // ─────────────────────────────────────────────────────────
+    //  STATE
+    // ─────────────────────────────────────────────────────────
+    let allTasks       = [];
+    let globalTracks   = ["عام", "مذاكرة", "برمجة", "جيم"];
+    let chartWeekly    = null;
+    let chartTasksPie  = null;
+    let chartPomoBar   = null;
+    let totalTodayFocus = 0;
+    let totalTodayBreak = 0;
+    let currentLang    = localStorage.getItem('app_lang') || 'ar';
+    let soundEnabled   = localStorage.getItem('sound_enabled') !== 'false';
+    let soundProfile    = localStorage.getItem('sound_profile') || 'gentle'; // 'soft' | 'gentle' | 'high'
+    let latestWeeklyStats = { Sat:0, Sun:0, Mon:0, Tue:0, Wed:0, Thu:0, Fri:0 };
+
+    // ─────────────────────────────────────────────────────────
+    //  MOBILE SIDEBAR (hamburger drawer)
+    // ─────────────────────────────────────────────────────────
+    function openSidebar() {
+        const sb = document.getElementById('appSidebar');
+        const ov = document.getElementById('sidebarOverlay');
+        const icon = document.getElementById('hamburgerIcon');
+        if (sb) sb.classList.add('open');
+        if (ov) ov.classList.add('show');
+        if (icon) { icon.classList.remove('fa-bars'); icon.classList.add('fa-xmark'); }
+    }
+    function closeSidebar() {
+        const sb = document.getElementById('appSidebar');
+        const ov = document.getElementById('sidebarOverlay');
+        const icon = document.getElementById('hamburgerIcon');
+        if (sb) sb.classList.remove('open');
+        if (ov) ov.classList.remove('show');
+        if (icon) { icon.classList.remove('fa-xmark'); icon.classList.add('fa-bars'); }
+    }
+    function toggleSidebar() {
+        const sb = document.getElementById('appSidebar');
+        if (sb && sb.classList.contains('open')) closeSidebar();
+        else openSidebar();
+    }
+    // Close on Escape key (keyboard accessibility)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const sb = document.getElementById('appSidebar');
+            if (sb && sb.classList.contains('open')) closeSidebar();
+        }
+    });
+
+    // ─────────────────────────────────────────────────────────
+    //  ONBOARDING — first-launch welcome experience
+    //  Step 1: gender/style → Step 2: language → animated entry
+    // ─────────────────────────────────────────────────────────
+    let onbSelectedGender = localStorage.getItem('app_gender') || null;
+    let onbSelectedLang   = null;
+
+    let hasSavedProfile =
+    localStorage.getItem('app_gender') &&
+    localStorage.getItem('app_lang');
+
+    // Gendered copy layered on top of `translations` (defined further
+    // below) once the user's style is known. Kept intentionally small —
+    // it adjusts tone/wording for the highest-visibility strings rather
+    // than duplicating the entire dictionary.
+    const genderOverrides = {
+        ar: {
+            male: {
+                theme_title:        "🎨 اختر ستايل الألوان المفضل لك:",
+                default_name:       "بطل الإنجاز الذكي 🚀",
+                streak_0:           "ابدأ رحلة الالتزام اليوم! 💪",
+                tasks_placeholder:  "إيه خطتك الجاية النهاردة؟...",
+                prompt_name:        "أدخل اسمك الجديد:",
+                support_text:       "المفكرة دي معمولة عشانك! المكان هنا مخصص بالكامل لاستقبال أفكارك الإبداعية، اقتراحات لتطوير الواجهة، أو طلب ثيمات مخصصة وملصقات بكسل جديدة حاب تشوفها في التحديثات الجاية."
+            },
+            female: {
+                theme_title:        "🎨 اختاري ستايل الألوان المفضل ليكي:",
+                default_name:       "ملكة الإنجاز الذكي ✨",
+                streak_0:           "ابدأي رحلة الالتزام اليوم! 💤",
+                tasks_placeholder:  "ما هي خطتكِ التالية اليوم؟...",
+                prompt_name:        "أدخلي اسمكِ الجديد الفخم:",
+                support_text:       "المفكرة دي معمولة عشانكِ! المكان هنا مخصص بالكامل لاستقبال أفكاركِ الإبداعية، اقتراحات لتطوير الواجهة، أو طلب ثيمات مخصصة وملصقات بكسل جديدة حابة تشوفيها في التحديثات الجاية."
+            }
+        },
+        en: {
+            male: {
+                theme_title:  "🎨 Pick your favorite color style:",
+                default_name: "Smart Achiever Pro 🚀",
+                streak_0:     "Start your streak today, let's go! 💪"
+            },
+            female: {
+                theme_title:  "🎨 Choose your favorite color style:",
+                default_name: "Smart Achievement Queen ✨",
+                streak_0:     "Start your commitment journey today! 💤"
+            }
+        }
+    };
+    const genderAvatarEmoji = { male: '🧑', female: '🌸' };
+
+    function applyGenderPersonality(gender) {
+        if (!gender || typeof translations === 'undefined') return;
+        document.body.classList.remove('gender-male', 'gender-female');
+        document.body.classList.add('gender-' + gender);
+
+        ['ar', 'en'].forEach(lang => {
+            const overrides = genderOverrides[lang] && genderOverrides[lang][gender];
+            if (overrides) Object.assign(translations[lang], overrides);
+        });
+
+        const placeholder = document.getElementById('avatarPlaceholder');
+        if (placeholder && !localStorage.getItem('user_profile_avatar')) {
+            placeholder.textContent = genderAvatarEmoji[gender] || '🌸';
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  CHANGE STYLE (mid-app) — strict sequential modal flow
+    //
+    //  Step 1: clicking the button instantly opens a question modal:
+    //          "soft-reset your achievements/stats, or keep them?"
+    //  Step 2: only AFTER that question is answered do we open the
+    //          gender/aesthetic choice modal (🌸 Girl Style / ⚡ Boy Style).
+    //  Step 3: only AFTER a style is picked do we send the combined
+    //          decision to the backend (soft-reset OR keep-stats) and
+    //          dismiss the flow.
+    //
+    //  The two modals are never shown at the same time, and the visual
+    //  style change is intentionally NOT applied until the user has
+    //  completed both steps.
+    // ─────────────────────────────────────────────────────────
+    let pendingSoftReset = null; // stores the Step 1 answer while Step 2 is open
+
+    function promptChangeStyle() {
+        pendingSoftReset = null;
+        const modal = document.getElementById('resetConfirmModal');
+        if (modal) modal.classList.add('show');
+    }
+
+    // Step 1 → Step 2: record the soft-reset answer, then reveal the
+    // gender/aesthetic choice modal. Nothing is sent to the backend yet.
+    function handleResetChoice(shouldReset) {
+        pendingSoftReset = shouldReset;
+
+        const resetModal = document.getElementById('resetConfirmModal');
+        if (resetModal) resetModal.classList.remove('show');
+
+        const genderModal = document.getElementById('genderChoiceModal');
+        if (genderModal) genderModal.classList.add('show');
+    }
+
+    // Step 2 → Step 3: the user picked their style. Now — and only now —
+    // apply the visual style and send the combined decision to Flask.
+    async function handleGenderChoice(newGender) {
+        const genderModal = document.getElementById('genderChoiceModal');
+        if (genderModal) genderModal.classList.remove('show');
+
+        localStorage.setItem('app_gender', newGender);
+        applyGenderPersonality(newGender);
+
+        if (pendingSoftReset) {
+            await softResetProgress();
+        } else {
+            await keepCurrentStats();
+        }
+        pendingSoftReset = null;
+    }
+
+    // Allow dismissing either modal by tapping the dark backdrop, without
+    // silently completing the flow (no gender is applied on cancel).
+    document.getElementById('resetConfirmModal')?.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('show');
+    });
+    document.getElementById('genderChoiceModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('show');
+            pendingSoftReset = null;
+        }
+    });
+
+    async function softResetProgress() {
+        try {
+            const res = await fetch('/api/profile/soft-reset', { method: 'POST' });
+            if (!res.ok) throw new Error('fail');
+            const result = await res.json();
+            applyProgressSnapshot(result.data || {});
+        } catch {
+            alert(currentLang === 'ar' ? 'تعذّرت إعادة الضبط، حاولي مرة أخرى' : 'Could not reset progress, please try again');
+        }
+    }
+
+    // Native counterpart of softResetProgress(): the user chose to keep
+    // their current stats, so we just re-sync the UI with whatever the
+    // backend confirms is currently stored (no destructive changes).
+    async function keepCurrentStats() {
+        try {
+            const res = await fetch('/api/profile/keep-stats', { method: 'POST' });
+            if (!res.ok) throw new Error('fail');
+            const result = await res.json();
+            applyProgressSnapshot(result.data || {});
+        } catch {
+            console.log('keep-stats sync skipped (offline?)');
+        }
+    }
+
+    // Shared UI refresh used by both branches of the change-style flow.
+    function applyProgressSnapshot(data) {
+        totalTodayFocus = data.focus_minutes || 0;
+        totalTodayBreak = data.break_minutes || 0;
+        lastSavedFocus = totalTodayFocus;
+        lastSavedBreak = totalTodayBreak;
+
+        const t = translations[currentLang];
+        document.getElementById('totalFocusStats').textContent = `${totalTodayFocus} ${t['focus_mins_unit']}`;
+        document.getElementById('totalBreakStats').textContent = `${totalTodayBreak} ${t['break_mins_unit']}`;
+        document.getElementById('playerLevel').textContent     = `Lvl ${data.level || 1}`;
+        document.getElementById('playerXP').textContent        = `${data.xp || 0}/100`;
+        document.getElementById('achievementCount').textContent = (data.achievements || []).length;
+
+        localStorage.setItem('cached_achievements', JSON.stringify(data.achievements || []));
+        updateAchievements(data.achievements || []);
+        renderDynamicStreak(data.streak || 0);
+        renderWeeklyChart(data.weekly_stats || latestWeeklyStats);
+        renderPomoBarChart();
+    }
+
+    function selectGender(gender) {
+        onbSelectedGender = gender;
+        document.getElementById('onbChoiceMale').classList.toggle('selected', gender === 'male');
+        document.getElementById('onbChoiceFemale').classList.toggle('selected', gender === 'female');
+        setTimeout(() => onbGoToStep('lang'), 380);
+    }
+
+    function selectOnbLang(lang) {
+        onbSelectedLang = lang;
+        document.getElementById('onbChoiceAr').classList.toggle('selected', lang === 'ar');
+        document.getElementById('onbChoiceEn').classList.toggle('selected', lang === 'en');
+        setTimeout(() => finishOnboarding(), 380);
+    }
+
+    function onbGoToStep(step) {
+        const steps = ["onbStepWelcomeBack", "onbStepGender", "onbStepLang"];
+
+        steps.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove("active");
+        });
+
+        const target = step === "welcome" ? "onbStepWelcomeBack"
+                      : step === "gender"  ? "onbStepGender"
+                      : "onbStepLang";
+
+        document.getElementById(target).classList.add("active");
+
+        const dot1 = document.getElementById('onbDot1');
+        const dot2 = document.getElementById('onbDot2');
+        if (dot1 && dot2) {
+            dot2.classList.toggle('active', step === 'lang');
+            dot1.classList.toggle('active', step !== 'lang');
+        }
+    }
+
+    function showSavedWelcome() {
+        const gender = localStorage.getItem('app_gender');
+        const lang   = localStorage.getItem('app_lang');
+
+        document.getElementById('savedAvatarPreview').textContent =
+            gender === 'male' ? '🧑' : '🌸';
+
+        document.getElementById('savedProfileStyle').textContent =
+            gender === 'male' ? 'Male Style 🚀' : 'Female Style ✨';
+
+        document.getElementById('savedLanguagePreview').textContent =
+            lang === 'ar' ? 'العربية' : 'English';
+
+        onbGoToStep('welcome');
+    }
+
+    function continueSavedAccount() {
+        const gender = localStorage.getItem('app_gender');
+        const lang   = localStorage.getItem('app_lang');
+
+        onbSelectedGender = gender;
+        onbSelectedLang   = lang;
+
+        applyGenderPersonality(gender);
+        changeLanguage(lang);
+
+        finishOnboarding();
+    }
+
+    function changeSavedPreferences() {
+        onbGoToStep('gender');
+    }
+
+    function finishOnboarding() {
+        const gender = onbSelectedGender || 'female';
+        const lang   = onbSelectedLang   || 'ar';
+
+        localStorage.setItem('app_gender', gender);
+        localStorage.setItem('app_lang', lang);
+        localStorage.setItem('app_onboarded', 'true');
+
+        applyGenderPersonality(gender);
+        changeLanguage(lang);
+
+        const onbScreen = document.getElementById('onboardingScreen');
+        const shell      = document.getElementById('appShell');
+
+        // Smooth, app-like hand-off: fade/scale the onboarding screen out
+        // while the dashboard fades + slides in underneath it.
+        onbScreen.classList.add('onb-exiting');
+        document.documentElement.classList.add('app-ready');
+        shell.classList.add('shell-entering');
+
+        setTimeout(() => {
+            onbScreen.style.display = 'none';
+            shell.classList.remove('shell-entering');
+        }, 650);
+    }
+
+    // NOTE: this file must contain exactly one full HTML document.
+
+
+    // ─────────────────────────────────────────────────────────
+    //  TRANSLATIONS  — 100% bilingual, no mixed text
+    // ─────────────────────────────────────────────────────────
+    const translations = {
+        ar: {
+            logo: "تاسك فلو",
+            menu_dashboard:   "لوحة التحكم",
+            menu_tasks:       "مفكرة المهام",
+            menu_pomodoro:    "مؤقت البومودورو",
+            menu_support:     "الاقتراحات والدعم",
+            theme_title:      "🎨 اختاري ستايل الألوان المفضل ليكي:",
+            focus_time:       "وقت التركيز",
+            break_time:       "وقت الراحة",
+            completed_tasks:  "المهام المكتملة",
+            weekly_chart_title: "جراف خطي لمعدل الإنتاجية الأسبوعي",
+            tasks_placeholder:  "ما هي خطتكِ التالية اليوم؟...",
+            add_track_btn:    "+ إضافة سجل جديد",
+            pie_chart_title:  "نسبة اكتمال المهام اليوم",
+            completed_label:  "اكتملت",
+            pending_label:    "متبقية",
+            pomo_focus_mode:  "دقائق التركيز والإبداع حالياً",
+            pomo_break_mode:  "وقت استراحة الروقان",
+            pomo_focus_icon:  "🎯",
+            pomo_break_icon:  "☕",
+            pomo_focus_mascot:"🌸",
+            pomo_break_mascot:"🍵",
+            edit_btn:         "تعديل",
+            start_timer:      "ابدأ المؤقت",
+            pause_timer:      "إيقاف مؤقت",
+            resume_timer:     "استئناف",
+            reset_timer:      "إعادة ضبط",
+            compare_chart_title: "مقارنة فترات التركيز مقابل الاستراحة",
+            support_heading:  "صندوق الأفكار وتطوير الميزات ✨",
+            support_text:     "المفكرة دي معمولة عشانكِ! المكان هنا مخصص بالكامل لاستقبال أفكاركِ الإبداعية، اقتراحات لتطوير الواجهة، أو طلب ثيمات مخصصة وملصقات بكسل جديدة حابة تشوفيها في التحديثات الجاية.",
+            support_btn:      "ارسل فكرتك ع الانستا",
+            no_tasks:         "لا توجد مهام في المفكرة اليوم",
+            no_tasks_sub:     "أضيفي أول مهمة ليكِ! 💪",
+            default_name:     "ملكة الإنجاز الذكي ✨",
+            prompt_name:      "أدخلي اسمكِ الجديد الفخم:",
+            prompt_edit_task: "عدلي نص المهمة:",
+            streak_0:         "ابدأي رحلة الالتزام اليوم! 💤",
+            streak_active:    "يوم التزام متتالي",
+            error_add_task:   "فشل إضافة المهمة",
+            error_delete_task:"فشل حذف المهمة",
+            error_edit_task:  "فشل تحديث المهمة",
+            error_toggle_task:"فشل تحديث حالة المهمة",
+            error_add_track:  "فشل إضافة التصنيف",
+            sound_profile_soft:   "🕊️ نعومة هادئة",
+            sound_profile_gentle: "🔔 لطيف (افتراضي)",
+            sound_profile_high:   "📢 تنبيه قوي",
+            pomo_sound_settings_title: "إعدادات صوت المؤقت",
+            pomo_sound_settings_label: "نغمة التنبيه",
+            reset_progress_prompt: "هل تريدين إعادة ضبط تقدمكِ (المستوى/الستريك) أم الاستمرار بإحصائياتكِ الحالية؟",
+            reset_progress_yes:    "إعادة الضبط",
+            reset_progress_no:     "الاستمرار بإحصائياتي",
+            change_style_btn:      "🎭 تغيير الستايل",
+            change_style_male:     "ستايل ذكوري 🚀",
+            change_style_female:   "ستايل أنثوي ✨",
+            change_style_step1_title: "🎭 تغيير الستايل",
+            change_style_step2_title: "✨ اختاري ستايلك",
+            style_choice_girl:     "ستايل بناتي",
+            style_choice_boy:      "ستايل ولادي",
+            th_pistachio_green:"بستيج و اخضر 🍃",
+            th_pistachio_gold: "بستيج و جولد ✨",
+            th_neon_glow:      "فسفوري اخضر و فسفوري اصفر ⚡",
+            th_mauve_silver:   "موف و سيلفر 🔮",
+            th_pink_fuchsia:   "بينك و فوشيا 🌸",
+            th_blue_silver:    "ازرق و سيلفر 💎",
+            th_grey_silver:    "رمادي و سيلفر 🌪️",
+            th_black_gold:     "اسود و جولد 👑",
+            level_label:       "المستوى",
+            xp_label:          "نقاط الخبرة",
+            achievements_label:"الإنجازات",
+            achievements_title:"🏆 الإنجازات",
+            ach_first_task:    "أول مهمة 🎯",
+            ach_7_day_streak:  "7 أيام متتالية 🔥",
+            ach_100_tasks:     "100 مهمة 💯",
+            ach_1000_minutes:  "1000 دقيقة ⏰",
+            focus_mins_unit:   "د",
+            break_mins_unit:   "د",
+            chart_focus_label: "التركيز (دقائق)",
+            chart_break_label: "الراحة (دقائق)",
+            pomo_subtitle:       "ركزي وارتاحي — كل تايمر مستقل بذاته ✨",
+            pomo_focus_title:    "وقت التركيز",
+            pomo_break_title:    "وقت الراحة",
+            pomo_minutes_label:  "دقائق:",
+            pomo_status_ready:   "جاهزة",
+            pomo_status_running: "▶ يعمل",
+            pomo_status_paused:  "⏸ متوقف",
+            pomo_status_done:    "✓ انتهى",
+            pomo_sessions_focus: "جلسات تركيز مكتملة",
+            pomo_sessions_break: "جلسات راحة مكتملة",
+            days: { Sat:"السبت", Sun:"الأحد", Mon:"الإثنين", Tue:"الثلاثاء", Wed:"الأربعاء", Thu:"الخميس", Fri:"الجمعة" }
+        },
+        en: {
+            logo: "TaskFlow",
+            menu_dashboard:   "Dashboard",
+            menu_tasks:       "Daily Tasks",
+            menu_pomodoro:    "Pomodoro Timer",
+            menu_support:     "Suggestions & Support",
+            theme_title:      "🎨 Choose your favorite color style:",
+            focus_time:       "Focus Time",
+            break_time:       "Break Time",
+            completed_tasks:  "Completed Tasks",
+            weekly_chart_title: "Weekly Productivity Line Chart",
+            tasks_placeholder:  "What's your next plan today?...",
+            add_track_btn:    "+ Add New Track",
+            pie_chart_title:  "Today's Task Completion Rate",
+            completed_label:  "Completed",
+            pending_label:    "Pending",
+            pomo_focus_mode:  "Focus & Creativity Time",
+            pomo_break_mode:  "Relaxing Break Time",
+            pomo_focus_icon:  "🎯",
+            pomo_break_icon:  "☕",
+            pomo_focus_mascot:"🌸",
+            pomo_break_mascot:"🍵",
+            edit_btn:         "Edit",
+            start_timer:      "Start Timer",
+            pause_timer:      "Pause",
+            resume_timer:     "Resume",
+            reset_timer:      "Reset",
+            compare_chart_title: "Focus vs Break Periods Comparison",
+            support_heading:  "Ideas Box & Feature Requests ✨",
+            support_text:     "This planner is crafted just for you! This space is dedicated to your creative ideas, UI suggestions, or custom themes and pixel stickers you'd love to see in upcoming updates.",
+            support_btn:      "Send your idea via Instagram",
+            no_tasks:         "No tasks in the planner today",
+            no_tasks_sub:     "Add your first task! 💪",
+            default_name:     "Smart Achievement Queen ✨",
+            prompt_name:      "Enter your elegant new name:",
+            prompt_edit_task: "Edit the task text:",
+            streak_0:         "Start your commitment journey today! 💤",
+            streak_active:    "day streak",
+            error_add_task:   "Failed to add task",
+            error_delete_task:"Failed to delete task",
+            error_edit_task:  "Failed to update task",
+            error_toggle_task:"Failed to update task status",
+            error_add_track:  "Failed to add track",
+            sound_profile_soft:   "🕊️ Soft & Calm",
+            sound_profile_gentle: "🔔 Gentle (default)",
+            sound_profile_high:   "📢 High Alert",
+            pomo_sound_settings_title: "Timer Sound Settings",
+            pomo_sound_settings_label: "Alert Tone",
+            reset_progress_prompt: "Do you want to soft-reset your progress (level/streak) or continue with your current stats?",
+            reset_progress_yes:    "Reset progress",
+            reset_progress_no:     "Keep my stats",
+            change_style_btn:      "🎭 Change Style",
+            change_style_male:     "Male Style 🚀",
+            change_style_female:   "Female Style ✨",
+            change_style_step1_title: "🎭 Change Style",
+            change_style_step2_title: "✨ Pick your style",
+            style_choice_girl:     "Girl Style",
+            style_choice_boy:      "Boy Style",
+            th_pistachio_green:"Pistachio Green & Leaves 🍃",
+            th_pistachio_gold: "Pistachio & Gold ✨",
+            th_neon_glow:      "Neon Green & Yellow ⚡",
+            th_mauve_silver:   "Mauve & Silver 🔮",
+            th_pink_fuchsia:   "Pink & Fuchsia 🌸",
+            th_blue_silver:    "Blue & Silver 💎",
+            th_grey_silver:    "Grey & Silver 🌪️",
+            th_black_gold:     "Black & Gold 👑",
+            level_label:       "Level",
+            xp_label:          "XP Points",
+            achievements_label:"Achievements",
+            achievements_title:"🏆 Achievements",
+            ach_first_task:    "First Task 🎯",
+            ach_7_day_streak:  "7 Day Streak 🔥",
+            ach_100_tasks:     "100 Tasks 💯",
+            ach_1000_minutes:  "1000 Minutes ⏰",
+            focus_mins_unit:   "m",
+            break_mins_unit:   "m",
+            chart_focus_label: "Focus (mins)",
+            chart_break_label: "Break (mins)",
+            pomo_subtitle:       "Focus & Rest — each timer runs independently ✨",
+            pomo_focus_title:    "Focus Time",
+            pomo_break_title:    "Break Time",
+            pomo_minutes_label:  "Minutes:",
+            pomo_status_ready:   "Ready",
+            pomo_status_running: "▶ Running",
+            pomo_status_paused:  "⏸ Paused",
+            pomo_status_done:    "✓ Done",
+            pomo_sessions_focus: "Focus Sessions Done",
+            pomo_sessions_break: "Break Sessions Done",
+            days: { Sat:"Sat", Sun:"Sun", Mon:"Mon", Tue:"Tue", Wed:"Wed", Thu:"Thu", Fri:"Fri" }
+        }
+    };
+
+    const trackLexicon = {
+        ar: { "عام":"عام", "مذاكرة":"مذاكرة", "برمجة":"برمجة", "جيم":"جيم" },
+        en: { "عام":"General", "مذاكرة":"Studying", "برمجة":"Programming", "جيم":"Gym" }
+    };
+
+    // ─────────────────────────────────────────────────────────
+    //  THEMES — dual-color accent-a / accent-b
+    // ─────────────────────────────────────────────────────────
+    const appThemes = {
+        "pistachio-green": {
+            bg: "linear-gradient(135deg,#0f1411,#1e2e22,#152219)",
+            glassBg: "rgba(163,232,149,0.05)", glassActive: "rgba(163,232,149,0.12)",
+            glassBorder: "1px solid rgba(163,232,149,0.2)",
+            accentA: "#a3e895", accentB: "#ffb3c6",
+            lavender: "#c3b1e1", textMain: "#f0f7f1", textMuted: "#8fa392"
+        },
+        "pistachio-gold": {
+            bg: "linear-gradient(135deg,#161510,#2d2a1e,#201e15)",
+            glassBg: "rgba(244,198,111,0.05)", glassActive: "rgba(244,198,111,0.15)",
+            glassBorder: "1px solid rgba(244,198,111,0.25)",
+            accentA: "#f4c66f", accentB: "#e2a863",
+            lavender: "#fae5b8", textMain: "#fff7e9", textMuted: "#bdae93"
+        },
+        "neon-glow": {
+            bg: "linear-gradient(135deg,#050805,#0d1a0d,#091009)",
+            glassBg: "rgba(57,255,20,0.04)", glassActive: "rgba(57,255,20,0.12)",
+            glassBorder: "1px solid rgba(57,255,20,0.3)",
+            accentA: "#39ff14", accentB: "#ffff00",
+            lavender: "#ccff00", textMain: "#e5ffe0", textMuted: "#6b8a66"
+        },
+        "mauve-silver": {
+            bg: "linear-gradient(135deg,#120f1a,#231d30,#181422)",
+            glassBg: "rgba(195,177,225,0.06)", glassActive: "rgba(195,177,225,0.15)",
+            glassBorder: "1px solid rgba(195,177,225,0.25)",
+            accentA: "#c3b1e1", accentB: "#e6e6fa",
+            lavender: "#c0c0c0", textMain: "#f5f2fa", textMuted: "#968da3"
+        },
+        "pink-fuchsia": {
+            bg: "linear-gradient(135deg,#1c0a13,#381427,#260e1a)",
+            glassBg: "rgba(255,158,187,0.06)", glassActive: "rgba(255,158,187,0.16)",
+            glassBorder: "1px solid rgba(255,158,187,0.25)",
+            accentA: "#ff9ebb", accentB: "#ff007f",
+            lavender: "#ff66b2", textMain: "#fff0f4", textMuted: "#b38f9b"
+        },
+        "blue-silver": {
+            bg: "linear-gradient(135deg,#0a111c,#142238,#0e1826)",
+            glassBg: "rgba(0,191,255,0.05)", glassActive: "rgba(0,191,255,0.14)",
+            glassBorder: "1px solid rgba(0,191,255,0.22)",
+            accentA: "#00bfff", accentB: "#c0c0c0",
+            lavender: "#a8c3d8", textMain: "#edf5fa", textMuted: "#879cb0"
+        },
+        "grey-silver": {
+            bg: "linear-gradient(135deg,#141416,#27272a,#1c1c1e)",
+            glassBg: "rgba(255,255,255,0.04)", glassActive: "rgba(255,255,255,0.1)",
+            glassBorder: "1px solid rgba(255,255,255,0.15)",
+            accentA: "#e0e0e0", accentB: "#808080",
+            lavender: "#c0c0c0", textMain: "#f4f4f4", textMuted: "#a1a1aa"
+        },
+        "black-gold": {
+            bg: "linear-gradient(135deg,#070708,#18181c,#111114)",
+            glassBg: "rgba(207,181,59,0.04)", glassActive: "rgba(207,181,59,0.14)",
+            glassBorder: "1px solid rgba(207,181,59,0.25)",
+            accentA: "#ffd700", accentB: "#cfb53b",
+            lavender: "#aa7c11", textMain: "#fffdf0", textMuted: "#9c967a"
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────
+    //  AUDIO — soft chime sounds using Web Audio API
+    // ─────────────────────────────────────────────────────────
+    let audioCtx = null;
+
+    function getAudioCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return audioCtx;
+    }
+
+    // Volume multipliers per sound profile — lets users pick anywhere from a
+    // barely-there whisper to a sharp, high-alert chime.
+    const SOUND_PROFILE_GAIN = { soft: 0.45, gentle: 1.0, high: 1.8 };
+
+    function profileGain() {
+        return SOUND_PROFILE_GAIN[soundProfile] || 1.0;
+    }
+
+    function playTaskCompleteSound() {
+        if (!soundEnabled) return;
+        try {
+            const ctx = getAudioCtx();
+            const g   = profileGain();
+            // Soft sparkle chime: three ascending bell tones
+            const freqs = [523, 659, 784]; // C5 E5 G5
+            freqs.forEach((freq, i) => {
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                const start = ctx.currentTime + i * 0.12;
+                gain.gain.setValueAtTime(0, start);
+                gain.gain.linearRampToValueAtTime(0.18 * g, start + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001, start + 0.5);
+                osc.start(start);
+                osc.stop(start + 0.55);
+            });
+        } catch(e) { /* silent fail */ }
+    }
+
+    // Timer-end alert: a sustained 5-second sequence of chime pairs so the
+    // sound is impossible to miss, instead of the old ~1-second single tone.
+    // Each "beep pair" is a short two-note chime; the pairs repeat roughly
+    // every 0.9s across a 5-second window, then everything stops
+    // automatically (every oscillator is scheduled with an explicit stop
+    // time, so nothing lingers after the 5 seconds are up).
+    const TIMER_END_ALERT_DURATION = 5.0; // seconds
+    const TIMER_END_BEEP_INTERVAL  = 0.9; // seconds between beep pairs
+
+    function playPomodoroSwitchSound(toBreak) {
+        if (!soundEnabled) return;
+        try {
+            const ctx       = getAudioCtx();
+            const g         = profileGain();
+            const freqA     = toBreak ? 392 : 523;  // G4 for break, C5 for focus
+            const freqB     = toBreak ? 330 : 659;  // secondary note of the chime
+            const startAt   = ctx.currentTime;
+            const beepCount = Math.ceil(TIMER_END_ALERT_DURATION / TIMER_END_BEEP_INTERVAL);
+
+            for (let i = 0; i < beepCount; i++) {
+                const beepStart = startAt + i * TIMER_END_BEEP_INTERVAL;
+
+                // Primary note
+                const osc1  = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(freqA, beepStart);
+                osc1.frequency.exponentialRampToValueAtTime(freqB, beepStart + 0.3);
+                gain1.gain.setValueAtTime(0, beepStart);
+                gain1.gain.linearRampToValueAtTime(0.22 * g, beepStart + 0.02);
+                gain1.gain.exponentialRampToValueAtTime(0.001, beepStart + 0.55);
+                osc1.start(beepStart);
+                osc1.stop(beepStart + 0.6);
+
+                // Short echo note for a fuller, more noticeable chime
+                const osc2  = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(freqB, beepStart + 0.32);
+                gain2.gain.setValueAtTime(0, beepStart + 0.32);
+                gain2.gain.linearRampToValueAtTime(0.16 * g, beepStart + 0.34);
+                gain2.gain.exponentialRampToValueAtTime(0.001, beepStart + 0.75);
+                osc2.start(beepStart + 0.32);
+                osc2.stop(beepStart + 0.8);
+            }
+        } catch(e) { /* silent fail */ }
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        localStorage.setItem('sound_enabled', soundEnabled);
+        const btn = document.getElementById('soundToggleBtn');
+        btn.textContent = soundEnabled ? '🔔' : '🔕';
+        btn.classList.toggle('muted', !soundEnabled);
+    }
+
+    function changeSoundProfile(profile) {
+        soundProfile = profile;
+        localStorage.setItem('sound_profile', profile);
+        // Preview so the user can hear what they picked
+        playTaskCompleteSound();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  LANGUAGE — 100% strict bilingual, full DOM sweep
+    // ─────────────────────────────────────────────────────────
+    function changeLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem('app_lang', lang);
+
+        const t = translations[lang];
+
+        document.documentElement.lang = lang;
+        document.documentElement.dir  = lang === 'ar' ? 'rtl' : 'ltr';
+
+        // Translate all data-i18n elements
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (t[key] !== undefined) el.textContent = t[key];
+        });
+
+        // Translate theme selector options
+        document.querySelectorAll('#themeSelector option[data-i18n]').forEach(opt => {
+            const key = opt.getAttribute('data-i18n');
+            if (t[key] !== undefined) opt.textContent = t[key];
+        });
+
+        // Placeholders
+        document.getElementById('taskInput').placeholder = t['tasks_placeholder'];
+        const workInput  = document.getElementById('customWorkMinutes');
+        const breakInput = document.getElementById('customBreakMinutes');
+        if (workInput)  workInput.placeholder  = lang === 'ar' ? 'تركيز' : 'focus';
+        if (breakInput) breakInput.placeholder = lang === 'ar' ? 'راحة'  : 'break';
+
+        // Language button highlight
+        document.getElementById('lang-ar').style.background = lang === 'ar' ? 'var(--glass-active)' : 'transparent';
+        document.getElementById('lang-en').style.background = lang === 'en' ? 'var(--glass-active)' : 'transparent';
+
+        // Profile name fallback
+        if (!localStorage.getItem('user_profile_name')) {
+            document.getElementById('profileName').textContent = t['default_name'];
+        }
+
+        // Timer mode text — sync with current state
+        updateTimerModeUI();
+
+        // Stats units
+        document.getElementById('totalFocusStats').textContent =
+            `${totalTodayFocus} ${t['focus_mins_unit']}`;
+        document.getElementById('totalBreakStats').textContent =
+            `${totalTodayBreak} ${t['break_mins_unit']}`;
+
+        // Streak
+        const savedStreak = parseInt(localStorage.getItem('current_streak_val')) || 0;
+        renderDynamicStreak(savedStreak);
+
+        // Re-render tasks and charts
+        renderTasksList();
+        if (chartPomoBar) renderPomoBarChart();
+        if (chartWeekly)  renderWeeklyChart(latestWeeklyStats);
+        updateAchievements(
+            JSON.parse(localStorage.getItem('cached_achievements') || '[]')
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  THEME APPLICATION — dual accent-a / accent-b
+    // ─────────────────────────────────────────────────────────
+    function applyTheme(themeName) {
+        const theme = appThemes[themeName];
+        if (!theme) return;
+
+        const r = document.documentElement.style;
+        r.setProperty('--bg-gradient',   theme.bg);
+        r.setProperty('--glass-bg',      theme.glassBg);
+        r.setProperty('--glass-active',  theme.glassActive);
+        r.setProperty('--glass-border',  theme.glassBorder);
+        // Both accent colors applied
+        r.setProperty('--accent-a',      theme.accentA);
+        r.setProperty('--accent-b',      theme.accentB);
+        r.setProperty('--pixel-mint',    theme.accentA);
+        r.setProperty('--pixel-pink',    theme.accentB);
+        r.setProperty('--pixel-lavender',theme.lavender);
+        r.setProperty('--text-main',     theme.textMain);
+        r.setProperty('--text-muted',    theme.textMuted);
+
+        localStorage.setItem('app_user_theme', themeName);
+        document.getElementById('themeSelector').value = themeName;
+
+        updateChartColors(theme);
+        renderTasksList();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  STREAK
+    // ─────────────────────────────────────────────────────────
+    function renderDynamicStreak(days) {
+        localStorage.setItem('current_streak_val', days);
+        const emojiEl = document.getElementById('streakEmoji');
+        const textEl  = document.getElementById('streakDays');
+        const t = translations[currentLang];
+
+        if (days === 0) {
+            emojiEl.textContent = '💤';
+            textEl.textContent  = t['streak_0'];
+        } else {
+            if      (days < 5)  emojiEl.textContent = '🌱';
+            else if (days < 10) emojiEl.textContent = '🔥';
+            else if (days < 30) emojiEl.textContent = '⚡';
+            else                emojiEl.textContent = '👑';
+            textEl.textContent = `${days} ${t['streak_active']}`;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  TASK BADGE STYLE
+    // ─────────────────────────────────────────────────────────
+    function getBadgeStyle(taskId) {
+        const seed = taskId % 3;
+        if (seed === 0) return `background:var(--accent-a);color:#101223;border:1px solid var(--accent-a);`;
+        if (seed === 1) return `background:transparent;color:var(--accent-b);border:1px solid var(--accent-b);`;
+        return `background:var(--glass-active);color:var(--pixel-lavender);border:1px solid var(--pixel-lavender);backdrop-filter:blur(5px);`;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  RENDER TASKS LIST — inline, strikethrough, custom checkbox
+    // ─────────────────────────────────────────────────────────
+    function renderTasksList() {
+        const taskList = document.getElementById('taskList');
+        taskList.innerHTML = '';
+        const t = translations[currentLang];
+
+        if (allTasks.length === 0) {
+            const li = document.createElement('li');
+            li.className = 'empty-state';
+            li.innerHTML = `
+                <span class="pixel-art-char">🌸</span>
+                <p>${t['no_tasks']}</p>
+                <p class="sub">${t['no_tasks_sub']}</p>
+            `;
+            taskList.appendChild(li);
+            return;
+        }
+
+        allTasks.forEach(task => {
+            const li = document.createElement('li');
+            li.className = 'timeline-item' + (task.completed ? ' completed' : '');
+            li.id = `task-item-${task.id}`;
+
+            const trackDisplay = (trackLexicon[currentLang] && trackLexicon[currentLang][task.track])
+                ? trackLexicon[currentLang][task.track]
+                : task.track;
+            const dynStyle = getBadgeStyle(task.id);
+            const checkIcon = task.completed ? '✓' : '';
+
+            li.innerHTML = `
+                <div class="task-left">
+                    <div class="task-checkbox ${task.completed ? 'checked' : ''}"
+                         onclick="toggleTaskStatus(${task.id})"
+                         title="${task.completed ? (currentLang==='ar' ? 'إلغاء الإكمال' : 'Mark incomplete') : (currentLang==='ar' ? 'إكمال' : 'Complete')}">${checkIcon}</div>
+                    <span class="task-badge" style="${dynStyle}">${trackDisplay}</span>
+                    <div class="task-text" ondblclick="startInlineEdit(${task.id}, this)">${escapeHTML(task.text)}</div>
+                </div>
+                <div class="task-actions">
+                    <button class="delete-btn" onclick="startInlineEdit(${task.id})" title="${currentLang==='ar' ? 'تعديل' : 'Edit'}"><i class="fa-regular fa-pen-to-square"></i></button>
+                    <button class="delete-btn" onclick="deleteTask(${task.id})" title="${currentLang==='ar' ? 'حذف' : 'Delete'}"><i class="fa-regular fa-trash-can"></i></button>
+                </div>
+            `;
+            taskList.appendChild(li);
+        });
+    }
+
+    function escapeHTML(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  INLINE EDIT — no modal/prompt
+    // ─────────────────────────────────────────────────────────
+    function startInlineEdit(taskId, textEl) {
+        const task = allTasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const li = document.getElementById(`task-item-${taskId}`);
+        const taskTextDiv = li.querySelector('.task-text');
+
+        const input = document.createElement('input');
+        input.type      = 'text';
+        input.value     = task.text;
+        input.className = 'task-edit-input';
+
+        const finishEdit = async () => {
+            const newText = input.value.trim();
+            if (newText && newText !== task.text) {
+                await saveTaskEdit(taskId, newText, task.track);
+            } else {
+                taskTextDiv.textContent = task.text;
+                if (taskTextDiv.parentNode.contains(input)) taskTextDiv.parentNode.replaceChild(taskTextDiv, input);
+            }
+        };
+
+        input.addEventListener('blur',    finishEdit);
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+            if (e.key === 'Escape') { taskTextDiv.textContent = task.text; input.replaceWith(taskTextDiv); }
+        });
+
+        taskTextDiv.replaceWith(input);
+        input.focus();
+        input.select();
+    }
+
+    async function saveTaskEdit(taskId, newText, track) {
+        try {
+            const res = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: newText, track })
+            });
+            if (!res.ok) throw new Error('fail');
+            const updated = await res.json();
+            const task = allTasks.find(t => t.id === taskId);
+            if (task) task.text = updated.text;
+            renderTasksList();
+        } catch {
+            alert(translations[currentLang]['error_edit_task']);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  ADD TASK
+    // ─────────────────────────────────────────────────────────
+    async function addTask() {
+        const input = document.getElementById('taskInput');
+        const text  = input.value.trim();
+        if (!text) return;
+
+        try {
+            const res = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, track: 'عام' })
+            });
+            if (!res.ok) throw new Error('fail');
+            const newTask = await res.json();
+            allTasks.push(newTask);
+            input.value = '';
+            document.getElementById('totalDoneStats').textContent = allTasks.filter(t => t.completed).length;
+            renderTasksList();
+            renderTasksPieChart();
+        } catch {
+            alert(translations[currentLang]['error_add_task']);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  TOGGLE TASK — instant strikethrough + sound
+    // ─────────────────────────────────────────────────────────
+    async function toggleTaskStatus(taskId) {
+        // Always read the CURRENT status from the source of truth (allTasks),
+        // never from a value baked into the DOM at render time — that stale
+        // value is what caused the checkbox to get stuck after one toggle.
+        const task = allTasks.find(t => t.id === taskId);
+        const currentStatus = task ? !!task.completed : false;
+        const newStatus = !currentStatus;
+
+        // Optimistic UI: apply strikethrough immediately
+        if (task) task.completed = newStatus;
+
+        const li = document.getElementById(`task-item-${taskId}`);
+        if (li) {
+            li.classList.toggle('completed', newStatus);
+            if (newStatus) {
+                li.classList.add('just-completed');
+                setTimeout(() => li.classList.remove('just-completed'), 400);
+                playTaskCompleteSound();
+            }
+            const checkbox = li.querySelector('.task-checkbox');
+            if (checkbox) {
+                checkbox.classList.toggle('checked', newStatus);
+                checkbox.textContent = newStatus ? '✓' : '';
+            }
+            const taskText = li.querySelector('.task-text');
+            if (taskText) taskText.style.textDecoration = newStatus ? 'line-through' : 'none';
+        }
+
+        try {
+            const res = await fetch(`/api/tasks/${taskId}/toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ completed: newStatus })
+            });
+            if (!res.ok) throw new Error('fail');
+            const result = await res.json();
+
+            renderDynamicStreak(result.streak);
+            document.getElementById('totalDoneStats').textContent = allTasks.filter(t => t.completed).length;
+
+            if (result.level !== undefined) {
+                document.getElementById('playerLevel').textContent = `Lvl ${result.level}`;
+                document.getElementById('playerXP').textContent    = `${result.xp}/100`;
+            }
+            if (result.achievements !== undefined) {
+                localStorage.setItem('cached_achievements', JSON.stringify(result.achievements));
+                document.getElementById('achievementCount').textContent = result.achievements.length;
+                updateAchievements(result.achievements);
+            }
+            renderTasksPieChart();
+        } catch {
+            // Revert optimistic update on error
+            if (task) task.completed = currentStatus;
+            renderTasksList();
+            alert(translations[currentLang]['error_toggle_task']);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  DELETE TASK
+    // ─────────────────────────────────────────────────────────
+    async function deleteTask(taskId) {
+        try {
+            const res = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('fail');
+            allTasks = allTasks.filter(t => t.id !== taskId);
+            document.getElementById('totalDoneStats').textContent = allTasks.filter(t => t.completed).length;
+            renderTasksList();
+            renderTasksPieChart();
+        } catch {
+            alert(translations[currentLang]['error_delete_task']);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  POMODORO — DUAL INDEPENDENT TIMERS
+    //  Focus timer and Break timer are fully separate
+    // ─────────────────────────────────────────────────────────
+
+    // ── Focus state ──
+    let focusInterval   = null;
+    let focusMinutes    = 25;
+    let focusTimeLeft   = 25 * 60;
+    let focusSessions   = 0;
+
+    // ── Break state ──
+    let breakInterval   = null;
+    let breakMins       = 5;
+    let breakTimeLeft   = 5 * 60;
+    let breakSessions   = 0;
+
+    // ── Helpers ──
+    // SVG ring progress updater
+    function updateProgressRing(ringId, timeLeft, totalTime) {
+        const ring = document.getElementById(ringId);
+        if (!ring) return;
+        const circumference = 376.99; // 2 * PI * 60
+        const progress = timeLeft / totalTime;
+        const offset   = circumference * (1 - progress);
+        ring.style.strokeDashoffset = offset;
+    }
+
+    function resetProgressRing(ringId) {
+        const ring = document.getElementById(ringId);
+        if (ring) ring.style.strokeDashoffset = 0;
+    }
+
+    function fmtTime(secs) {
+        const m = Math.floor(secs / 60).toString().padStart(2,'0');
+        const s = (secs % 60).toString().padStart(2,'0');
+        return `${m}:${s}`;
+    }
+
+    function setCardRunning(cardId, running) {
+        const card = document.getElementById(cardId);
+        const other = cardId === 'focusCard' ? document.getElementById('breakCard')
+                                              : document.getElementById('focusCard');
+        card.classList.toggle('pomo-running', running);
+        // Dim the other card only when something is actually running
+        const anyRunning = focusInterval !== null || breakInterval !== null;
+        other.classList.toggle('pomo-inactive', anyRunning && !other.classList.contains('pomo-running'));
+    }
+
+    function setStatusPill(type, state) {
+        // state: 'ready' | 'running' | 'paused' | 'done'
+        const t = translations[currentLang];
+        const pillTextId = type === 'focus' ? 'focusStatusText' : 'breakStatusText';
+        const map = {
+            ready:  t['pomo_status_ready']  || 'جاهزة',
+            running:t['pomo_status_running'] || '▶ يعمل',
+            paused: t['pomo_status_paused']  || '⏸ متوقف',
+            done:   t['pomo_status_done']    || '✓ انتهى'
+        };
+        document.getElementById(pillTextId).textContent = map[state] || state;
+    }
+
+    // ══════════════════════
+    //  FOCUS TIMER
+    // ══════════════════════
+    function applyFocusTime() {
+        if (focusInterval) return; // don't change while running
+        focusMinutes  = parseInt(document.getElementById('customWorkMinutes').value) || 25;
+        focusTimeLeft = focusMinutes * 60;
+        document.getElementById('focusTimerDisplay').textContent = fmtTime(focusTimeLeft);
+        setStatusPill('focus', 'ready');
+    }
+
+    // Pause the break timer without resetting its remaining time — used to
+    // enforce mutual exclusion when the focus timer starts.
+    function pauseBreakTimerSilently() {
+        if (!breakInterval) return;
+        clearInterval(breakInterval); breakInterval = null;
+        const btn = document.getElementById('breakStartBtn');
+        const t   = translations[currentLang];
+        if (btn) btn.textContent = t['resume_timer'] || 'استئناف';
+        setCardRunning('breakCard', false);
+        setStatusPill('break', 'paused');
+        savePomodoroData();
+    }
+
+    // Pause the focus timer without resetting its remaining time — used to
+    // enforce mutual exclusion when the break timer starts.
+    function pauseFocusTimerSilently() {
+        if (!focusInterval) return;
+        clearInterval(focusInterval); focusInterval = null;
+        const btn = document.getElementById('focusStartBtn');
+        const t   = translations[currentLang];
+        if (btn) btn.textContent = t['resume_timer'] || 'استئناف';
+        setCardRunning('focusCard', false);
+        setStatusPill('focus', 'paused');
+        savePomodoroData();
+    }
+
+    function toggleFocusTimer() {
+        const btn = document.getElementById('focusStartBtn');
+        const t   = translations[currentLang];
+        if (focusInterval) {
+            // Pause
+            clearInterval(focusInterval); focusInterval = null;
+            btn.textContent = t['resume_timer'] || 'استئناف';
+            setCardRunning('focusCard', false);
+            setStatusPill('focus', 'paused');
+            savePomodoroData();
+        } else {
+            // Mutually exclusive: starting Focus must pause Break first.
+            pauseBreakTimerSilently();
+            // Start / Resume
+            btn.textContent = t['pause_timer'] || 'إيقاف مؤقت';
+            setCardRunning('focusCard', true);
+            setStatusPill('focus', 'running');
+            focusInterval = setInterval(() => {
+                if (focusTimeLeft > 0) {
+                    focusTimeLeft--;
+                    document.getElementById('focusTimerDisplay').textContent = fmtTime(focusTimeLeft);
+                    updateProgressRing('focusProgressRing', focusTimeLeft, focusMinutes * 60);
+                    // Accumulate every full minute
+                    if (focusTimeLeft % 60 === 0) {
+                        totalTodayFocus++;
+                        const unit = translations[currentLang]['focus_mins_unit'];
+                        document.getElementById('totalFocusStats').textContent = `${totalTodayFocus} ${unit}`;
+                        renderPomoBarChart();
+                    }
+                } else {
+                    // Focus session complete
+                    clearInterval(focusInterval); focusInterval = null;
+                    focusSessions++;
+                    document.getElementById('focusSessionsCount').textContent = focusSessions;
+                    focusTimeLeft = focusMinutes * 60;
+                    document.getElementById('focusTimerDisplay').textContent = fmtTime(focusTimeLeft);
+                    btn.textContent = t['start_timer'];
+                    setCardRunning('focusCard', false);
+                    setStatusPill('focus', 'done');
+                    playPomodoroSwitchSound(true);  // signal: go take a break!
+                    savePomodoroData();
+                    // Pulse mascot celebration
+                    const mascot = document.getElementById('focusMascot');
+                    mascot.textContent = '🎉';
+                    setTimeout(() => { mascot.textContent = '🌸'; setStatusPill('focus','ready'); }, 3000);
+                }
+            }, 1000);
+        }
+    }
+
+    function resetFocusTimer() {
+        clearInterval(focusInterval); focusInterval = null;
+        focusMinutes  = parseInt(document.getElementById('customWorkMinutes').value) || 25;
+        focusTimeLeft = focusMinutes * 60;
+        document.getElementById('focusTimerDisplay').textContent = fmtTime(focusTimeLeft);
+        resetProgressRing('focusProgressRing');
+        document.getElementById('focusStartBtn').textContent = translations[currentLang]['start_timer'];
+        document.getElementById('focusMascot').textContent = '🌸';
+        setCardRunning('focusCard', false);
+        setStatusPill('focus', 'ready');
+    }
+
+    // ══════════════════════
+    //  BREAK TIMER
+    // ══════════════════════
+    function applyBreakTime() {
+        if (breakInterval) return;
+        breakMins      = parseInt(document.getElementById('customBreakMinutes').value) || 5;
+        breakTimeLeft  = breakMins * 60;
+        document.getElementById('breakTimerDisplay').textContent = fmtTime(breakTimeLeft);
+        setStatusPill('break', 'ready');
+    }
+
+    function toggleBreakTimer() {
+        const btn = document.getElementById('breakStartBtn');
+        const t   = translations[currentLang];
+        if (breakInterval) {
+            // Pause
+            clearInterval(breakInterval); breakInterval = null;
+            btn.textContent = t['resume_timer'] || 'استئناف';
+            setCardRunning('breakCard', false);
+            setStatusPill('break', 'paused');
+            savePomodoroData();
+        } else {
+            // Mutually exclusive: starting Break must pause Focus first.
+            pauseFocusTimerSilently();
+            // Start / Resume
+            btn.textContent = t['pause_timer'] || 'إيقاف مؤقت';
+            setCardRunning('breakCard', true);
+            setStatusPill('break', 'running');
+            breakInterval = setInterval(() => {
+                if (breakTimeLeft > 0) {
+                    breakTimeLeft--;
+                    document.getElementById('breakTimerDisplay').textContent = fmtTime(breakTimeLeft);
+                    updateProgressRing('breakProgressRing', breakTimeLeft, breakMins * 60);
+                    if (breakTimeLeft % 60 === 0) {
+                        totalTodayBreak++;
+                        const unit = translations[currentLang]['break_mins_unit'];
+                        document.getElementById('totalBreakStats').textContent = `${totalTodayBreak} ${unit}`;
+                        renderPomoBarChart();
+                    }
+                } else {
+                    // Break session complete
+                    clearInterval(breakInterval); breakInterval = null;
+                    breakSessions++;
+                    document.getElementById('breakSessionsCount').textContent = breakSessions;
+                    breakTimeLeft = breakMins * 60;
+                    document.getElementById('breakTimerDisplay').textContent = fmtTime(breakTimeLeft);
+                    btn.textContent = t['start_timer'];
+                    setCardRunning('breakCard', false);
+                    setStatusPill('break', 'done');
+                    playPomodoroSwitchSound(false); // signal: back to focus!
+                    savePomodoroData();
+                    const mascot = document.getElementById('breakMascot');
+                    mascot.textContent = '⚡';
+                    setTimeout(() => { mascot.textContent = '🍵'; setStatusPill('break','ready'); }, 3000);
+                }
+            }, 1000);
+        }
+    }
+
+    function resetBreakTimer() {
+        clearInterval(breakInterval); breakInterval = null;
+        breakMins      = parseInt(document.getElementById('customBreakMinutes').value) || 5;
+        breakTimeLeft  = breakMins * 60;
+        document.getElementById('breakTimerDisplay').textContent = fmtTime(breakTimeLeft);
+        resetProgressRing('breakProgressRing');
+        document.getElementById('breakStartBtn').textContent = translations[currentLang]['start_timer'];
+        document.getElementById('breakMascot').textContent = '🍵';
+        setCardRunning('breakCard', false);
+        setStatusPill('break', 'ready');
+    }
+
+    // Keep legacy name so any remaining call doesn't break
+    function resetTimer() { resetFocusTimer(); }
+    function updateTimerModeUI() { /* no-op — dual timers don't need a single mode banner */ }
+
+    let lastSavedFocus = 0;
+    let lastSavedBreak  = 0;
+
+    async function savePomodoroData() {
+        const focusDelta = totalTodayFocus - lastSavedFocus;
+        const breakDelta = totalTodayBreak - lastSavedBreak;
+        if (focusDelta <= 0 && breakDelta <= 0) return;
+        lastSavedFocus = totalTodayFocus;
+        lastSavedBreak = totalTodayBreak;
+        try {
+            const res = await fetch('/api/pomodoro/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ focus_minutes: focusDelta, break_minutes: breakDelta })
+            });
+            if (!res.ok) throw new Error('fail');
+            const result = await res.json();
+            if (result.level !== undefined) {
+                document.getElementById('playerLevel').textContent = `Lvl ${result.level}`;
+                document.getElementById('playerXP').textContent    = `${result.xp}/100`;
+            }
+            if (result.achievements !== undefined) {
+                localStorage.setItem('cached_achievements', JSON.stringify(result.achievements));
+                document.getElementById('achievementCount').textContent = result.achievements.length;
+                updateAchievements(result.achievements);
+            }
+        } catch(e) { console.error('Error saving pomodoro data:', e); }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  ACHIEVEMENTS
+    // ─────────────────────────────────────────────────────────
+    function updateAchievements(achievements) {
+        const t = translations[currentLang];
+        const achievementData = {
+            'first_task':         { icon: '🎯', labelKey: 'ach_first_task' },
+            '7_day_streak':       { icon: '🔥', labelKey: 'ach_7_day_streak' },
+            '100_tasks_done':     { icon: '💯', labelKey: 'ach_100_tasks' },
+            '1000_focus_minutes': { icon: '⏰', labelKey: 'ach_1000_minutes' }
+        };
+
+        const container = document.getElementById('achievementsContainer');
+        container.innerHTML = '';
+        Object.entries(achievementData).forEach(([key, data]) => {
+            const unlocked = achievements.includes(key);
+            const badge = document.createElement('div');
+            badge.className = `achievement-badge ${unlocked ? 'unlocked' : 'locked'}`;
+            badge.innerHTML = `
+                <span style="font-size:20px;">${data.icon}</span>
+                <span style="font-size:11px;color:var(--text-muted);margin-top:4px;">${t[data.labelKey] || data.labelKey}</span>
+                ${unlocked ? '<span style="font-size:9px;color:var(--accent-a);margin-top:2px;">✓</span>' : ''}
+            `;
+            container.appendChild(badge);
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  CHARTS
+    // ─────────────────────────────────────────────────────────
+    function renderWeeklyChart(stats) {
+        latestWeeklyStats = stats; // cache so language switches can re-render with translated labels
+        const ctx = document.getElementById('weeklyChart').getContext('2d');
+        const t   = translations[currentLang];
+        const daysMap = t['days'];
+
+        if (chartWeekly) chartWeekly.destroy();
+        chartWeekly = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Object.keys(stats).map(d => daysMap[d] || d),
+                datasets: [{
+                    data: Object.values(stats),
+                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-a').trim() || '#a3e895',
+                    backgroundColor: 'rgba(255,255,255,0.01)',
+                    borderWidth: 3, tension: 0.4, fill: true,
+                    pointBackgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-b').trim() || '#ff9ebb',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#8b92b6', font: { family: 'Cairo', size: 11 } }, grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { display: false }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    function renderTasksPieChart() {
+        const canvas = document.getElementById('tasksPieChart');
+        if (!canvas) return;
+        const ctx  = canvas.getContext('2d');
+        const t    = translations[currentLang];
+        const accentA = getComputedStyle(document.documentElement).getPropertyValue('--accent-a').trim();
+
+        if (chartTasksPie) { chartTasksPie.destroy(); chartTasksPie = null; }
+
+        // Empty state: no ghost "Pending" slice — show a clean, honest placeholder ring instead.
+        if (allTasks.length === 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            chartTasksPie = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [t['no_tasks_chart_label'] || t['no_tasks'] || '—'],
+                    datasets: [{
+                        data: [1],
+                        backgroundColor: ['rgba(255,255,255,0.06)'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '72%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                },
+                plugins: [{
+                    id: 'emptyStateText',
+                    afterDraw(c) {
+                        const { ctx, chartArea: { left, top, width, height } } = c;
+                        ctx.save();
+                        ctx.font = "600 13px 'Cairo', sans-serif";
+                        ctx.fillStyle = '#8b92b6';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('0%', left + width / 2, top + height / 2);
+                        ctx.restore();
+                    }
+                }]
+            });
+            return;
+        }
+
+        const done    = allTasks.filter(t => t.completed).length;
+        const pending = allTasks.length - done;
+        chartTasksPie = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: [t['completed_label'], t['pending_label']],
+                datasets: [{
+                    data: [done, pending],
+                    backgroundColor: [accentA, 'rgba(255,255,255,0.05)'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: '#fff', font: { family: 'Cairo', size: 11 } } } }
+            }
+        });
+    }
+
+    function renderPomoBarChart() {
+        const canvas = document.getElementById('pomodoroBarChart');
+        if (!canvas) return;
+        const ctx   = canvas.getContext('2d');
+        const t     = translations[currentLang];
+        const accentA = getComputedStyle(document.documentElement).getPropertyValue('--accent-a').trim();
+        const accentB = getComputedStyle(document.documentElement).getPropertyValue('--accent-b').trim();
+        if (chartPomoBar) chartPomoBar.destroy();
+        chartPomoBar = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [t['chart_focus_label'], t['chart_break_label']],
+                datasets: [{
+                    data: [totalTodayFocus, totalTodayBreak],
+                    backgroundColor: [accentA, accentB],
+                    borderRadius: 8, barThickness: 24
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#fff', font: { family: 'Cairo' } }, grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#8b92b6',
+                            stepSize: 1,
+                            precision: 0,
+                            // Extra safety net: never render a fractional minute label
+                            callback: value => Number.isInteger(value) ? value : null
+                        },
+                        grid: { color: 'rgba(255,255,255,0.03)' }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateChartColors(theme) {
+        if (chartWeekly) {
+            chartWeekly.data.datasets[0].borderColor        = theme.accentA;
+            chartWeekly.data.datasets[0].pointBackgroundColor = theme.accentB;
+            chartWeekly.options.scales.x.ticks.color        = theme.textMuted;
+            chartWeekly.update();
+        }
+        if (chartTasksPie) {
+            chartTasksPie.data.datasets[0].backgroundColor  = [theme.accentA, 'rgba(255,255,255,0.05)'];
+            chartTasksPie.options.plugins.legend.labels.color = theme.textMain;
+            chartTasksPie.update();
+        }
+        if (chartPomoBar) {
+            chartPomoBar.data.datasets[0].backgroundColor   = [theme.accentA, theme.accentB];
+            chartPomoBar.options.scales.x.ticks.color       = theme.textMain;
+            chartPomoBar.options.scales.y.ticks.color       = theme.textMuted;
+            chartPomoBar.update();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  PROFILE — name & avatar
+    // ─────────────────────────────────────────────────────────
+    function editProfileName() {
+        const current = document.getElementById('profileName').textContent;
+        const newName = prompt(translations[currentLang]['prompt_name'], current);
+        if (newName && newName.trim()) {
+            document.getElementById('profileName').textContent = newName.trim();
+            localStorage.setItem('user_profile_name', newName.trim());
+            document.getElementById('resetNameBtn').style.display = 'inline-block';
+        }
+    }
+
+    function resetProfileName() {
+        localStorage.removeItem('user_profile_name');
+        document.getElementById('profileName').textContent = translations[currentLang]['default_name'];
+        document.getElementById('resetNameBtn').style.display = 'none';
+    }
+
+    function previewAndSaveAvatar(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const b64 = e.target.result;
+                document.getElementById('profileImage').src           = b64;
+                document.getElementById('profileImage').style.display = 'block';
+                document.getElementById('avatarPlaceholder').style.display = 'none';
+                document.getElementById('removeAvatarBtn').style.display    = 'flex';
+                localStorage.setItem('user_profile_avatar', b64);
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function removeAvatar(event) {
+        event.stopPropagation();
+        localStorage.removeItem('user_profile_avatar');
+        document.getElementById('profileImage').src                   = '';
+        document.getElementById('profileImage').style.display         = 'none';
+        document.getElementById('avatarPlaceholder').style.display    = 'flex';
+        document.getElementById('removeAvatarBtn').style.display      = 'none';
+        document.getElementById('avatarInput').value                  = '';
+    }
+
+    function loadSavedProfile() {
+        const savedName   = localStorage.getItem('user_profile_name');
+        const savedAvatar = localStorage.getItem('user_profile_avatar');
+        if (savedName) {
+            document.getElementById('profileName').textContent = savedName;
+            document.getElementById('resetNameBtn').style.display = 'inline-block';
+        }
+        if (savedAvatar) {
+            document.getElementById('profileImage').src           = savedAvatar;
+            document.getElementById('profileImage').style.display = 'block';
+            document.getElementById('avatarPlaceholder').style.display = 'none';
+            document.getElementById('removeAvatarBtn').style.display    = 'flex';
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  PAGE NAVIGATION
+    // ─────────────────────────────────────────────────────────
+    function switchPage(pageId, btn) {
+        closeSidebar();
+
+        document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.sidebar .menu-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        if (btn) btn.classList.add('active');
+
+        if      (pageId === 'profile-page' && chartWeekly) { chartWeekly.resize(); chartWeekly.update(); }
+        else if (pageId === 'tasks-page')    renderTasksPieChart();
+        else if (pageId === 'pomodoro-page') renderPomoBarChart();
+
+        if (pageId === 'support-page') {
+            activateFollower();
+        } else {
+            deactivateFollower();
+        }
+    }
+
+
+    // ─────────────────────────────────────────────────────────
+    //  CHARACTER PREVIEW AREA — random character when page is shown
+    // ─────────────────────────────────────────────────────────
+    const supportCharacters = [
+        { name: "Pixel Miko 🌸", src: "/static/chars/char1.png.png" },
+        { name: "Cyber Luna 🌙", src: "/static/chars/char2.png.png" },
+        { name: "Neon Sakura ✨", src: "/static/chars/char3.png.png" },
+        { name: "Starry Yuki 🌟", src: "/static/chars/char4.png.png" }
+    ];
+
+    const cursorImg = document.getElementById('cursorFollower');
+
+    function loadRandomCharacter() {
+        // Fill the preview card only (no mouse-follow character)
+        const img = document.getElementById('previewImage');
+        const nameEl = document.getElementById('previewName');
+        if (!img || !nameEl || supportCharacters.length === 0) return;
+
+        const selectedChar = supportCharacters[Math.floor(Math.random() * supportCharacters.length)];
+
+        // Ensure we don't create duplicates / keep consistent class state
+        img.classList.remove('visible');
+        img.src = selectedChar.src;
+
+        // Hide preview label per request
+        nameEl.textContent = '';
+
+        // Show image with a clean fade
+        img.classList.add('visible');
+    }
+
+
+    // Keep existing function name used elsewhere
+    function displayCharacter(src, name) {
+        const imgElement = document.getElementById('previewImage');
+        const nameElement = document.getElementById('previewName');
+        if (!imgElement || !nameElement) return;
+        imgElement.src = src;
+        nameElement.textContent = name;
+        imgElement.classList.add('visible');
+    }
+
+
+
+    // ─────────────────────────────────────────────────────────
+    //  Cursor follower — Support only
+    // ─────────────────────────────────────────────────────────
+    function activateFollower() {
+        // تم تعطيله لإزالة شخصية الحركة ورا الماوس.
+        if (cursorImg) cursorImg.style.display = 'none';
+    }
+
+    function deactivateFollower() {
+        if (!cursorImg) return;
+        cursorImg.style.display = 'none';
+    }
+
+    // تتبع حركة الماوس — تم تعطيله لأنكِ طلبتي إزالة الشخصية المتحركة خلف الماوس.
+    // (cursorFollower يبقى غير مستخدم)
+
+
+    // ─────────────────────────────────────────────────────────
+    //  INIT
+    // ─────────────────────────────────────────────────────────
+    async function initApp() {
+        let data = {
+            streak: 0, tracks: ["عام","مذاكرة","برمجة","جيم"], tasks: [],
+            weekly_stats: { Sat:0, Sun:0, Mon:0, Tue:0, Wed:0, Thu:0, Fri:0 },
+            level: 1, xp: 0, achievements: [], focus_minutes: 0, break_minutes: 0
+        };
+        try {
+            const res = await fetch('/api/init');
+            if (res.ok) data = await res.json();
+        } catch(e) { console.log('Using fallbacks'); }
+
+        loadSavedProfile();
+        renderDynamicStreak(data.streak);
+
+        const savedTheme = localStorage.getItem('app_user_theme') || 'pistachio-green';
+        applyTheme(savedTheme);
+
+        totalTodayFocus = data.focus_minutes || 0;
+        totalTodayBreak = data.break_minutes || 0;
+        lastSavedFocus = totalTodayFocus;
+        lastSavedBreak = totalTodayBreak;
+
+        const t = translations[currentLang];
+        document.getElementById('totalFocusStats').textContent = `${totalTodayFocus} ${t['focus_mins_unit']}`;
+        document.getElementById('totalBreakStats').textContent = `${totalTodayBreak} ${t['break_mins_unit']}`;
+        document.getElementById('playerLevel').textContent     = `Lvl ${data.level || 1}`;
+        document.getElementById('playerXP').textContent        = `${data.xp || 0}/100`;
+        document.getElementById('achievementCount').textContent = (data.achievements || []).length;
+
+        localStorage.setItem('cached_achievements', JSON.stringify(data.achievements || []));
+        updateAchievements(data.achievements || []);
+
+        globalTracks = data.tracks;
+        allTasks     = data.tasks;
+        document.getElementById('totalDoneStats').textContent = allTasks.filter(t => t.completed).length;
+
+        renderTasksList();
+        renderWeeklyChart(data.weekly_stats);
+        renderTasksPieChart();
+        renderPomoBarChart();
+        // Dual timer: initialize both displays
+        document.getElementById('focusTimerDisplay').textContent = '25:00';
+        document.getElementById('breakTimerDisplay').textContent = '05:00';
+        setStatusPill('focus','ready');
+        setStatusPill('break','ready');
+
+        // Sound toggle button initial state
+        const soundBtn = document.getElementById('soundToggleBtn');
+        soundBtn.textContent = soundEnabled ? '🔔' : '🔕';
+        soundBtn.classList.toggle('muted', !soundEnabled);
+
+        // Sound profile selector initial state
+        const soundProfileSel = document.getElementById('soundProfileSelector');
+        if (soundProfileSel) soundProfileSel.value = soundProfile;
+
+        // Preview companion character removed from DOM per request.
+        // If you call displayCharacter(src,name) later, it will animate the preview.
+        loadRandomCharacter();
+    }
+
+    // Cursor follower init (Support only)
+    if (window.innerWidth > 768) {
+        document.addEventListener('mousemove', (e) => {
+            if (!cursorImg || cursorImg.style.display === 'none') return;
+            cursorImg.style.left = (e.clientX - 40) + 'px';
+            cursorImg.style.top  = (e.clientY - 40) + 'px';
+        }, { passive: true });
+    }
+
+    window.onload = async function() {
+        const gender = localStorage.getItem('app_gender');
+        const lang   = localStorage.getItem('app_lang');
+
+        if (gender && lang) {
+            showSavedWelcome();
+        } else {
+            onbGoToStep('gender');
+        }
+
+        await initApp();
+    };
+    </script>
+</body>
+</html>
